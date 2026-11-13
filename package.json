@@ -1,0 +1,17 @@
+{
+  "name": "farmshift-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Development commands for the FarmShift AI frontend and backend",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "test": "npm test --prefix backend",
+    "lint": "npm run lint --prefix frontend",
+    "build": "npm run build --prefix frontend"
+  }
+}
