@@ -59,6 +59,7 @@ function createApp(appConfig = config) {
                 gambiaSources: "/api/gambia/sources",
                 gambiaSummary: "/api/gambia/summary",
                 gambiaRecommendations: "/api/gambia/recommendations",
+                gambiaRotation: "/api/gambia/rotation",
                 gambiaSourceData: "/api/gambia/data/:sourceId"
             }
         });

@@ -105,3 +105,13 @@ export async function fetchGambiaRecommendations(params = {}, { signal } = {}) {
 
   return data
 }
+
+export async function fetchGambiaRotation(params = {}, { signal } = {}) {
+  const { data } = await apiClient.get('gambia/rotation', { params, signal, timeout: 60000 })
+
+  if (data?.success !== true || !Array.isArray(data.plan)) {
+    throw new Error('The backend returned an unexpected rotation response.')
+  }
+
+  return data
+}

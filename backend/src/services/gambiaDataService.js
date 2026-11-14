@@ -1,6 +1,8 @@
 const { ApiError } = require("../middleware/apiError");
 const { GAMBIA_BOUNDS, GAMBIA_LOCATIONS, DEFAULT_LOCATION_ID, resolveLocation } = require("../config/gambia");
-const { createEra5Source, createPowerSource } = require("./gambia/climate");
+const { createEra5Source, createPowerClimatology, createPowerSource } = require("./gambia/climate");
+const { CROP_CALENDAR } = require("./gambia/cropCalendar");
+const { buildRotationPlan } = require("./gambia/rotation");
 const { createGaezSource } = require("./gambia/crops");
 const { createEarthdataSource } = require("./gambia/earthdata");
 const { createImagerySource } = require("./gambia/imagery");
@@ -41,6 +43,7 @@ function createGambiaDataService(deps = {}) {
         createEarthdataSource("grace-fo", deps)
     ];
     const byId = new Map(sources.map((source) => [source.id, source]));
+    const getClimateNormals = createPowerClimatology(deps);
     const now = deps.now || Date.now;
 
     function getRegion() {
@@ -223,7 +226,73 @@ function createGambiaDataService(deps = {}) {
         };
     }
 
-    return { getRecommendations, getRegion, getSourceData, getSummary, listSources };
+    /**
+     * Plans a multi-year crop rotation for an upland field from FAO GAEZ
+     * suitability and the NASA POWER long-term growing period.
+     */
+    async function getRotationPlan(query = {}) {
+        const {
+            location: locationId, latitude, longitude, input = "low", years = "3", irrigation = "false", previous
+        } = query;
+        const location = resolveLocation({ location: locationId, latitude, longitude });
+
+        const yearCount = Number(years);
+        if (!Number.isInteger(yearCount) || yearCount < 2 || yearCount > 5) {
+            throw new ApiError(400, "INVALID_YEARS", "years must be an integer from 2 to 5.");
+        }
+        if (!["true", "false"].includes(String(irrigation))) {
+            throw new ApiError(400, "INVALID_IRRIGATION", "irrigation must be true or false.");
+        }
+        const rainfedCrops = Object.keys(CROP_CALENDAR).filter((crop) => CROP_CALENDAR[crop].system === "rainfed");
+        let previousCrop = null;
+        if (previous !== undefined && previous !== "" && String(previous).toLowerCase() !== "none") {
+            previousCrop = rainfedCrops.find((crop) => crop.toLowerCase() === String(previous).toLowerCase()) ?? null;
+            if (!previousCrop) {
+                throw new ApiError(400, "INVALID_PREVIOUS_CROP", `previous must be none or one of: ${rainfedCrops.join(", ")}.`);
+            }
+        }
+
+        const [gaez, normals] = await Promise.allSettled([
+            byId.get("gaez").fetch({ location, query: { input } }),
+            getClimateNormals(location)
+        ]);
+        if (gaez.status === "rejected") {
+            throw gaez.reason;
+        }
+
+        const plan = buildRotationPlan({
+            gaezCrops: gaez.value.data.crops,
+            normals: normals.status === "fulfilled" ? normals.value : null,
+            years: yearCount,
+            irrigation: String(irrigation) === "true",
+            previousCrop,
+            now: now()
+        });
+
+        return {
+            success: true,
+            location,
+            retrievedAt: new Date(now()).toISOString(),
+            request: { input: gaez.value.request.input, years: yearCount, irrigation: String(irrigation) === "true", previous: previousCrop },
+            ...plan,
+            sources: [
+                { id: "gaez", name: byId.get("gaez").name, status: "ok" },
+                {
+                    id: "power-climatology",
+                    name: "NASA POWER climatology",
+                    status: normals.status === "fulfilled" ? "ok" : "error",
+                    ...(normals.status === "rejected" ? { error: settledError(normals) } : {})
+                }
+            ],
+            notes: [
+                "Plans are for upland fields. Lowland swamp rice is usually grown continuously and is not planned here.",
+                "The growing period follows the FAO method: days when average rainfall is at least half of potential evapotranspiration, plus about 100 mm of stored soil water. Potential evapotranspiration is estimated with the Hargreaves equation from NASA POWER climate normals.",
+                "Crop choice starts from FAO GAEZ suitability, then favours a legume after a cereal and a different family each season. These are general agronomic rules; adapt them to your soil, market and labour."
+            ]
+        };
+    }
+
+    return { getRecommendations, getRegion, getRotationPlan, getSourceData, getSummary, listSources };
 }
 
 const gambiaDataService = createGambiaDataService();

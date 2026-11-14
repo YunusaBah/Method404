@@ -63,6 +63,7 @@ test("GET /api lists available API endpoints", async () => {
             gambiaSources: "/api/gambia/sources",
             gambiaSummary: "/api/gambia/summary",
             gambiaRecommendations: "/api/gambia/recommendations",
+            gambiaRotation: "/api/gambia/rotation",
             gambiaSourceData: "/api/gambia/data/:sourceId"
         }
     });

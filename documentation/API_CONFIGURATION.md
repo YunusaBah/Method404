@@ -17,6 +17,7 @@ endpoint paths through its shared Axios client.
 | `GET /api/gambia/data/:sourceId` | Fetches one source for a location in The Gambia. | None |
 | `GET /api/gambia/summary` | Fetches every fast source for one location. | None |
 | `GET /api/gambia/recommendations` | Ranks crops for a location from suitability and current conditions. | None |
+| `GET /api/gambia/rotation` | Plans a multi-year crop rotation for an upland field. | None |
 
 `GET /api/health` returns:
 
@@ -145,6 +146,31 @@ includes plain-language `reasons`, its sowing months, and FAO water-need and
 growing-period ranges. The response also returns `season`, `conditions` and
 the status of each input source. Sowing months and water needs are general
 regional guidance in `services/gambia/cropCalendar.js`.
+
+**Crop rotation.** `GET /api/gambia/rotation?location=basse&years=3&irrigation=true&previous=Groundnut&input=low`
+plans `years` (2–5, default 3) of rainy and dry seasons for an upland field.
+`irrigation` (`true`/`false`, default `false`) decides whether dry seasons
+grow vegetables or stay fallow. `previous` is last rainy season's crop (or
+`none`), so the plan can follow it correctly.
+
+- The growing period comes from NASA POWER climatology (long-term monthly
+  means). It counts the days when rainfall is at least half of potential
+  evapotranspiration (FAO method), plus about 100 mm of stored soil water.
+  Potential evapotranspiration is estimated with the Hargreaves equation
+  (`T2M`, `T2M_RANGE`, `TOA_SW_DWN`).
+- Rain-fed upland crops enter the rotation if their FAO GAEZ index is at
+  least 10 and they mature within the growing period. Cassava is exempt from
+  the season-length check because it grows through the dry season.
+- Each rainy season picks the best-scoring crop. The score is GAEZ
+  suitability, adjusted to favour a legume after a cereal, avoid the previous
+  season's plant family, and avoid repeating a crop within two seasons.
+- With irrigation, dry seasons rotate onion, tomato and cabbage so no family
+  repeats within two dry seasons. After cassava, the dry season is marked
+  `occupied`.
+
+The response includes `growingSeason` (monthly normals and the derived
+period), `plan` (each year's `rainy` and `dry` slot with `reasons`),
+`candidates` (each crop with why it was included or excluded) and `summary`.
 
 **Summary.** `/api/gambia/summary` fetches all sources in parallel and reports
 each one's `status` separately, so one failing provider does not fail the

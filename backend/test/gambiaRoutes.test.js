@@ -60,3 +60,13 @@ test("recommendations reject locations outside The Gambia", async () => {
     assert.equal(response.status, 400);
     assert.equal((await response.json()).error.code, "LOCATION_OUTSIDE_GAMBIA");
 });
+
+test("rotation validates its options before any upstream call", async () => {
+    const years = await fetch(`${baseUrl}/api/gambia/rotation?years=9`);
+    const previous = await fetch(`${baseUrl}/api/gambia/rotation?previous=wheat`);
+
+    assert.equal(years.status, 400);
+    assert.equal((await years.json()).error.code, "INVALID_YEARS");
+    assert.equal(previous.status, 400);
+    assert.equal((await previous.json()).error.code, "INVALID_PREVIOUS_CROP");
+});

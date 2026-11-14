@@ -191,7 +191,7 @@ function DashboardOverview({ health, onNavigate, locationId, region, sources }) 
             <span className="eyebrow">YOUR WORKSPACE</span>
             <h2 id="planning-title">Tools for better planning</h2>
           </div>
-          <span className="section-note">Being prepared for future data integration</span>
+          <span className="section-note">Powered by NASA and FAO data</span>
         </div>
         <div className="planning-grid">
           <PlanningCard
@@ -211,9 +211,9 @@ function DashboardOverview({ health, onNavigate, locationId, region, sources }) 
             title="Crop recommendations"
           />
           <PlanningCard
-            description="Build a season-by-season plan with clear assumptions."
+            description="Build a multi-year plan from NASA climate data and crop suitability."
             icon="rotation"
-            label="UNDER DEVELOPMENT"
+            label="LIVE DATA"
             onClick={onNavigate}
             sectionId="rotation"
             title="Crop rotation planner"

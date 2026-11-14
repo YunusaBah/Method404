@@ -21,7 +21,7 @@ export const sections = [
     id: 'rotation',
     label: 'Crop Rotation Planner',
     icon: 'rotation',
-    description: 'Plan crop sequences with transparent, locally relevant guidance.',
+    description: 'Season-by-season rotations built from NASA climate data and crop suitability.',
   },
   {
     id: 'environmental-data',

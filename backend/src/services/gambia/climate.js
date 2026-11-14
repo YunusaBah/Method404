@@ -130,3 +130,129 @@ function createEra5Source({ fetchImpl, now } = {}) {
 }
 
 module.exports = { POWER_DEFAULT_PARAMETERS, createEra5Source, createPowerSource };
+
+const POWER_CLIMATOLOGY_URL = "https://power.larc.nasa.gov/api/temporal/climatology/point";
+const MONTH_KEYS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+// FAO length of growing period: days when rainfall is at least half of
+// potential evapotranspiration, plus the days needed to use up about 100 mm
+// of water stored in the soil after the rains end.
+const LGP_RAIN_RATIO = 0.5;
+const STORED_SOIL_WATER_MM = 100;
+
+function dayOfYearToMonthDay(dayOfYear) {
+    const date = new Date(Date.UTC(2023, 0, 1) + (dayOfYear - 1) * 86400000);
+    return date.toISOString().slice(5, 10);
+}
+
+/**
+ * Estimates the growing period from monthly normals. Monthly values are
+ * placed at mid-month and interpolated to daily values.
+ */
+function estimateGrowingPeriod(months) {
+    const midpoints = [];
+    let start = 0;
+    for (const days of DAYS_IN_MONTH) {
+        midpoints.push(start + days / 2);
+        start += days;
+    }
+    const daily = [];
+    for (let day = 0; day < 365; day += 1) {
+        let next = midpoints.findIndex((mid) => mid > day + 0.5);
+        if (next === -1) next = 12;
+        const previous = (next + 11) % 12;
+        const previousMid = next === 0 ? midpoints[11] - 365 : midpoints[previous];
+        const nextMid = next === 12 ? midpoints[0] + 365 : midpoints[next];
+        const weight = (day + 0.5 - previousMid) / (nextMid - previousMid);
+        const pick = (key) => months[previous][key] * (1 - weight) + months[next % 12][key] * weight;
+        daily.push({ rain: pick("rainMmPerDay"), et0: pick("et0MmPerDay") });
+    }
+
+    const humid = daily.map((day) => day.rain >= LGP_RAIN_RATIO * day.et0);
+    // Find the longest run of humid days, allowing it to wrap over New Year.
+    let best = { start: -1, length: 0 };
+    for (let first = 0; first < 365; first += 1) {
+        if (!humid[first] || humid[(first + 364) % 365]) continue;
+        let length = 0;
+        while (length < 365 && humid[(first + length) % 365]) length += 1;
+        if (length > best.length) best = { start: first, length };
+    }
+    if (best.length === 0) {
+        return null;
+    }
+
+    const endIndex = (best.start + best.length - 1) % 365;
+    // After the rains, stored soil water lasts until it is used up at the
+    // post-season evapotranspiration rate.
+    let stored = STORED_SOIL_WATER_MM;
+    let carryDays = 0;
+    while (stored > 0 && carryDays < 60) {
+        const day = daily[(endIndex + 1 + carryDays) % 365];
+        stored -= Math.max(day.et0 - day.rain, 0);
+        if (stored > 0) carryDays += 1;
+    }
+    const seasonRainMm = Array.from({ length: best.length }, (_, offset) => daily[(best.start + offset) % 365].rain)
+        .reduce((sum, value) => sum + value, 0);
+
+    return {
+        rainySeasonStart: dayOfYearToMonthDay(best.start + 1),
+        rainySeasonEnd: dayOfYearToMonthDay(endIndex + 1),
+        rainySeasonDays: best.length,
+        storedMoistureDays: carryDays,
+        totalDays: best.length + carryDays,
+        seasonRainfallMm: Math.round(seasonRainMm)
+    };
+}
+
+/**
+ * Long-term monthly climate normals from NASA POWER, and the growing period
+ * derived from them. Potential evapotranspiration uses the Hargreaves
+ * equation from mean temperature, daily temperature range and top-of-
+ * atmosphere radiation, because POWER climatology has no ET0 parameter.
+ */
+function createPowerClimatology({ fetchImpl, now } = {}) {
+    const cached = createCache({ ttlMs: 30 * 24 * 60 * 60 * 1000, now });
+
+    return async function getClimateNormals(location) {
+        const url = new URL(POWER_CLIMATOLOGY_URL);
+        url.searchParams.set("latitude", String(location.latitude));
+        url.searchParams.set("longitude", String(location.longitude));
+        url.searchParams.set("community", "AG");
+        url.searchParams.set("parameters", "PRECTOTCORR,T2M,T2M_RANGE,TOA_SW_DWN");
+        url.searchParams.set("format", "JSON");
+
+        const payload = await cached(url.toString(), () => fetchJson(url, {
+            source: "power", label: "NASA POWER climatology", fetchImpl, timeoutMs: 30_000
+        }));
+        const parameter = payload?.properties?.parameter;
+        if (!parameter?.PRECTOTCORR || !parameter.T2M || !parameter.T2M_RANGE || !parameter.TOA_SW_DWN) {
+            throw new ApiError(502, "POWER_INVALID_RESPONSE", "NASA POWER climatology returned an unexpected response.");
+        }
+
+        const months = MONTH_KEYS.map((key, index) => {
+            const rain = parameter.PRECTOTCORR[key];
+            const tMean = parameter.T2M[key];
+            const tRange = parameter.T2M_RANGE[key];
+            // Hargreaves: 0.0023 (Tmean + 17.8) sqrt(Trange) Ra, Ra in mm/day.
+            const et0 = 0.0023 * (tMean + 17.8) * Math.sqrt(Math.max(tRange, 0)) * parameter.TOA_SW_DWN[key] * 0.408;
+            return {
+                month: index + 1,
+                rainMmPerDay: rain,
+                et0MmPerDay: Number(et0.toFixed(2)),
+                rainMm: Math.round(rain * DAYS_IN_MONTH[index]),
+                et0Mm: Math.round(et0 * DAYS_IN_MONTH[index]),
+                meanTemperatureC: tMean
+            };
+        });
+
+        return {
+            source: "NASA POWER climatology (long-term monthly means)",
+            months,
+            annualRainfallMm: months.reduce((sum, month) => sum + month.rainMm, 0),
+            growingPeriod: estimateGrowingPeriod(months)
+        };
+    };
+}
+
+module.exports.createPowerClimatology = createPowerClimatology;
+module.exports.estimateGrowingPeriod = estimateGrowingPeriod;

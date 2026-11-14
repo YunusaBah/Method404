@@ -32,4 +32,12 @@ async function getRecommendations(req, res, next) {
     }
 }
 
-module.exports = { getRecommendations, getRegion, getSourceData, getSummary, listSources };
+async function getRotationPlan(req, res, next) {
+    try {
+        return res.status(200).json(await gambiaDataService.getRotationPlan(req.query));
+    } catch (error) {
+        return next(error);
+    }
+}
+
+module.exports = { getRecommendations, getRegion, getRotationPlan, getSourceData, getSummary, listSources };

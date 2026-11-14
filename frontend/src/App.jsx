@@ -3,6 +3,7 @@ import ClimatePage from './components/ClimatePage.jsx'
 import CropRecommendationsPage from './components/CropRecommendationsPage.jsx'
 import DashboardOverview from './components/DashboardOverview.jsx'
 import EnvironmentalDataPage from './components/EnvironmentalDataPage.jsx'
+import RotationPlannerPage from './components/RotationPlannerPage.jsx'
 import SectionPage from './components/SectionPage.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import Topbar from './components/Topbar.jsx'
@@ -80,7 +81,8 @@ function App() {
           {activeSection === 'climate' && <ClimatePage {...pageProps} />}
           {activeSection === 'environmental-data' && <EnvironmentalDataPage {...pageProps} />}
           {activeSection === 'recommendations' && <CropRecommendationsPage {...pageProps} />}
-          {!['overview', 'climate', 'environmental-data', 'recommendations'].includes(activeSection) && (
+          {activeSection === 'rotation' && <RotationPlannerPage {...pageProps} />}
+          {!['overview', 'climate', 'environmental-data', 'recommendations', 'rotation'].includes(activeSection) && (
             <SectionPage section={currentSection} />
           )}
           <footer className="page-footer">
