@@ -26,6 +26,9 @@ endpoint paths through its shared Axios client.
 | `GET /api/gambia/summary` | Fetches every fast source for one location. | None |
 | `GET /api/gambia/recommendations` | Ranks crops for a location from suitability and current conditions. | None |
 | `GET /api/gambia/rotation` | Plans a multi-year crop rotation for an upland field. | None |
+| `GET /api/gambia/engine/districts` | Lists the farmer app's eight districts. | None |
+| `POST /api/gambia/engine/plan` | The farmer app's rotation engine: best plan, alternatives, reasons and numbers. | None |
+| `POST /api/gambia/engine/slot-options` | The farmer app's swap options for one season. | None |
 
 Protected routes require `Authorization: Bearer <Supabase access token>`.
 Requests use the project publishable key plus that access token; the backend
@@ -289,6 +292,38 @@ grow vegetables or stay fallow. `previous` is last rainy season's crop (or
 The response includes `growingSeason` (monthly normals and the derived
 period), `plan` (each year's `rainy` and `dry` slot with `reasons`),
 `candidates` (each crop with why it was included or excluded) and `summary`.
+
+**Farmer app engine.** The farmer app (`frontend/src`) calls
+`POST /api/gambia/engine/plan` with `{ profile, scenario, fixed }` and
+`POST /api/gambia/engine/slot-options` with `{ profile, scenario, slot, fixed }`.
+Requests and responses follow `frontend/src/engine/contract.js`. A profile
+without a location, soil or water returns `{ status: "insufficient", missing }`.
+
+- **Climate record.** NASA POWER daily rainfall (`PRECTOTCORR`) and maximum
+  temperature (`T2M_MAX`) for the last ten complete rainy seasons (May to
+  December; a season counts once October is over) at the district
+  headquarters. It's fetched in one request and cached for a day per district.
+- **Past outcomes.** Each crop is replayed in each season:
+  - Sowing waits for the onset of the rains (Sivakumar rule, by 31 August).
+  - Effective rainfall over the crop's days (FAO/AGLW formula, adjusted for
+    soil) is compared with its FAO water need, scaled to the early-maturing
+    variety's growing time.
+  - Dry spells count days under 2.5 mm, because gridded rain rarely reaches
+    zero. The longest one in the first 60 days is checked against the crop's
+    tolerance.
+  - The crop is checked for maturing after the rains end (about 20 days of
+    stored water after the last 10 mm day).
+  - Heat during flowering uses `T2M_MAX`.
+
+  Irrigated farms skip the water checks; lowland rice skips them too.
+- **What-if scenarios.** `scenario.dRainPct` scales every day's rain and
+  `scenario.dTempC` shifts every day's maximum temperature in the historical
+  record. Results are tagged `hypothetical`.
+- **Ranking.** Every crop sequence (up to 3 seasons, honouring pinned
+  `fixed` crops) is scored from its record (good and poor seasons), FAO GAEZ
+  suitability, soil fit and the farmer's priorities. It's rewarded for a
+  legume before a cereal, and penalised for repeating a crop or family.
+  Reasons use only the codes the app translates.
 
 **Summary.** `/api/gambia/summary` fetches all sources in parallel and reports
 each one's `status` separately, so one failing provider does not fail the

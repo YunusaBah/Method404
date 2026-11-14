@@ -28,7 +28,12 @@ This starts the API on port `5000` and Vite on port `5173` (or Vite's next avail
 
 You can also run only one service from the root with `npm run dev:backend` or `npm run dev:frontend`.
 
-Open the Vite URL printed in the frontend terminal (normally `http://localhost:5173`). The dashboard checks the backend health endpoint and displays its connection state.
+Open the Vite URL printed in the frontend terminal (normally `http://localhost:5173`). The frontend has two pages:
+
+- **Farmer app** (`/`): the step-by-step rotation planner (location, soil, water, priorities), in English, Mandinka, Wolof and Pulaar. Its plans come from the backend engine, which uses ten years of NASA POWER daily rainfall and temperature plus FAO GAEZ suitability. Set `VITE_USE_MOCK=true` in `frontend/.env` to work on the UI without the backend.
+- **Data explorer** (`/data.html`): the dashboard, Climate Insights, Crop Recommendations, Crop Rotation Planner and Environmental Data pages, showing every NASA and partner data source.
+
+On macOS, port 5000 is often taken by the AirPlay Receiver; the launcher then uses port 5001 and points the frontend at it automatically.
 
 ## Configuration
 

@@ -1,10 +1,19 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
+import { registerSW } from 'virtual:pwa-register'
+import App from './App'
+import { hydrate } from './state/store'
+import './styles/tokens.css'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+registerSW({ immediate: true })
+
+const container = document.getElementById('root')
+if (!container) throw new Error('Root element not found')
+
+void hydrate().then(() => {
+  createRoot(container).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+})

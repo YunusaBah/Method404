@@ -3,6 +3,9 @@ const { GAMBIA_BOUNDS, GAMBIA_LOCATIONS, DEFAULT_LOCATION_ID, resolveLocation } 
 const { createEra5Source, createPowerClimatology, createPowerSource } = require("./gambia/climate");
 const { CROP_CALENDAR } = require("./gambia/cropCalendar");
 const { buildRotationPlan } = require("./gambia/rotation");
+const engine = require("./gambia/engine");
+const { createCache } = require("./external/http");
+const { createNasaPowerService } = require("./nasaPowerService");
 const { createGaezSource } = require("./gambia/crops");
 const { createEarthdataSource } = require("./gambia/earthdata");
 const { createImagerySource } = require("./gambia/imagery");
@@ -44,6 +47,8 @@ function createGambiaDataService(deps = {}) {
     ];
     const byId = new Map(sources.map((source) => [source.id, source]));
     const getClimateNormals = createPowerClimatology(deps);
+    const enginePower = deps.powerService || createNasaPowerService({ fetchImpl: deps.fetchImpl, now: deps.now });
+    const recordCache = createCache({ ttlMs: 24 * 60 * 60 * 1000, now: deps.now });
     const now = deps.now || Date.now;
 
     function getRegion() {
@@ -292,7 +297,95 @@ function createGambiaDataService(deps = {}) {
         };
     }
 
-    return { getRecommendations, getRegion, getRotationPlan, getSourceData, getSummary, listSources };
+    /**
+     * The last ten complete rainy seasons of NASA POWER daily rainfall and
+     * maximum temperature for a district, plus its FAO GAEZ suitability.
+     */
+    async function getEngineRecord(district) {
+        const today = new Date(now());
+        // A season is complete once October is over.
+        const lastSeasonYear = today.getUTCMonth() >= 10 ? today.getUTCFullYear() : today.getUTCFullYear() - 1;
+        const firstYear = lastSeasonYear - 9;
+        const endDate = new Date(Math.min(Date.UTC(lastSeasonYear, 11, 31), today.getTime() - 3 * 86400000));
+        const compact = (date) => date.toISOString().slice(0, 10).replaceAll("-", "");
+
+        return recordCache(`${district.id}|${lastSeasonYear}`, async () => {
+            const [power, gaez] = await Promise.all([
+                enginePower.getDailyPointData({
+                    latitude: String(district.latitude),
+                    longitude: String(district.longitude),
+                    start: `${firstYear}0501`,
+                    end: compact(endDate),
+                    parameters: "PRECTOTCORR,T2M_MAX",
+                    community: "AG"
+                }),
+                byId.get("gaez").fetch({ location: district, query: { input: "low" } })
+                    .catch((error) => {
+                        console.error(`[engine] GAEZ unavailable for ${district.id}: ${error.message}`);
+                        return null;
+                    })
+            ]);
+            const rain = power.properties.parameter.PRECTOTCORR || {};
+            const heat = power.properties.parameter.T2M_MAX || {};
+            const clean = (value) => (typeof value === "number" && value !== -999 ? value : null);
+            const daily = Object.keys(rain).sort().map((key) => ({
+                date: `${key.slice(0, 4)}-${key.slice(4, 6)}-${key.slice(6, 8)}`,
+                rainMm: clean(rain[key]),
+                tMaxC: clean(heat[key])
+            }));
+            return {
+                seasons: engine.seasonsFromDaily(daily, lastSeasonYear),
+                gaezCrops: gaez?.data.crops ?? []
+            };
+        });
+    }
+
+    function engineDistricts() {
+        return engine.DISTRICTS.map(({ id, name, defaultSoil, latitude, longitude }) => ({
+            id, name, defaultSoil, latitude, longitude
+        }));
+    }
+
+    async function engineInput(body = {}) {
+        const checked = engine.validateProfile(body.profile);
+        if (checked.missing) {
+            return { insufficient: { status: "insufficient", missing: checked.missing } };
+        }
+        const scenario = engine.validateScenario(body.scenario);
+        const fixed = engine.validateFixed(body.fixed, checked.profile.seasons);
+        const record = await getEngineRecord(checked.district);
+        if (record.seasons.length === 0) {
+            throw new ApiError(502, "POWER_INVALID_RESPONSE", "NASA POWER returned no complete rainy seasons for this district.");
+        }
+        return { input: { record, gaezCrops: record.gaezCrops, profile: checked.profile, scenario, fixed } };
+    }
+
+    async function enginePlan(body) {
+        const { insufficient, input } = await engineInput(body);
+        return insufficient ?? engine.planFromRecord(input).plan;
+    }
+
+    async function engineSlotOptions(body = {}) {
+        const { insufficient, input } = await engineInput(body);
+        if (insufficient) return [];
+        const slot = Number(body.slot);
+        if (!Number.isInteger(slot) || slot < 0 || slot >= input.profile.seasons) {
+            throw new ApiError(400, "INVALID_SLOT", `slot must be an integer from 0 to ${input.profile.seasons - 1}.`);
+        }
+        return engine.slotOptionsFromRecord(input, slot);
+    }
+
+    return {
+        enginePlan,
+        engineSlotOptions,
+        engineDistricts,
+        getRecommendations,
+        getRegion,
+        getRotationPlan,
+        getSourceData,
+        getSummary,
+        listSources
+    };
 }
 
 const gambiaDataService = createGambiaDataService();

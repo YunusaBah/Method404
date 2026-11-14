@@ -830,3 +830,8 @@
     padding-top: 0;
   }
 }
+
+.farm-app-link {
+  margin-bottom: 12px;
+  text-decoration: none;
+}
