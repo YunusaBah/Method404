@@ -70,3 +70,24 @@ test("rotation validates its options before any upstream call", async () => {
     assert.equal(previous.status, 400);
     assert.equal((await previous.json()).error.code, "INVALID_PREVIOUS_CROP");
 });
+
+test("engine endpoints list districts and answer incomplete profiles without upstream calls", async () => {
+    const districts = await (await fetch(`${baseUrl}/api/gambia/engine/districts`)).json();
+    assert.equal(districts.districts.length, 8);
+
+    const plan = await fetch(`${baseUrl}/api/gambia/engine/plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile: { cellId: "basse", soil: "unknown", water: "rainfed" }, scenario: {}, fixed: {} })
+    });
+    assert.equal(plan.status, 200);
+    assert.deepEqual(await plan.json(), { status: "insufficient", missing: ["soil"] });
+
+    const invalid = await fetch(`${baseUrl}/api/gambia/engine/plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile: { cellId: "dakar", soil: "sandy", water: "rainfed" } })
+    });
+    assert.equal(invalid.status, 400);
+    assert.equal((await invalid.json()).error.code, "UNKNOWN_DISTRICT");
+});

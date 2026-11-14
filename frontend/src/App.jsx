@@ -1,101 +1,45 @@
-import { useState } from 'react'
-import ClimatePage from './components/ClimatePage.jsx'
-import CropRecommendationsPage from './components/CropRecommendationsPage.jsx'
-import DashboardOverview from './components/DashboardOverview.jsx'
-import EnvironmentalDataPage from './components/EnvironmentalDataPage.jsx'
-import RotationPlannerPage from './components/RotationPlannerPage.jsx'
-import SectionPage from './components/SectionPage.jsx'
-import Sidebar from './components/Sidebar.jsx'
-import Topbar from './components/Topbar.jsx'
-import { sections } from './components/navigationSections.js'
-import { useApiResource } from './hooks/useApiResource.js'
-import { useBackendHealth } from './hooks/useBackendHealth.js'
-import { fetchGambiaRegion, fetchGambiaSources } from './services/api.js'
-import './App.css'
-import './DataPages.css'
+import { useEffect } from 'react'
+import { HashRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { LANGUAGES } from './i18n'
+import { LocationScreen } from './screens/Location'
+import { PlanScreen } from './screens/Plan'
+import { PrioritiesScreen } from './screens/Priorities'
+import { SoilScreen } from './screens/Soil'
+import { WaterScreen } from './screens/Water'
+import { useAppState } from './state/store'
 
-const LOCATION_STORAGE_KEY = 'farmshift.location'
+function SetupRoute() {
+  const { step } = useParams()
+  const { profile } = useAppState()
 
-function readStoredLocation() {
-  try {
-    return window.localStorage.getItem(LOCATION_STORAGE_KEY)
-  } catch {
-    return null
-  }
+  if (step === 'location') return <LocationScreen />
+  if (!profile) return <Navigate replace to="/setup/location" />
+  if (step === 'soil') return <SoilScreen />
+  if (step === 'water') return <WaterScreen />
+  if (step === 'priorities') return <PrioritiesScreen />
+  return <Navigate replace to="/" />
 }
 
-function App() {
-  const [activeSection, setActiveSection] = useState('overview')
-  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
-  const health = useBackendHealth()
-  const region = useApiResource((signal) => fetchGambiaRegion({ signal }), [])
-  const sources = useApiResource((signal) => fetchGambiaSources({ signal }), [])
-  const [storedLocation, setStoredLocation] = useState(readStoredLocation)
-  const knownLocations = region.data?.locations ?? []
-  const locationId = knownLocations.some((location) => location.id === storedLocation)
-    ? storedLocation
-    : region.data?.defaultLocation ?? 'janjanbureh'
+export default function App() {
+  const { hydrated, language, profile } = useAppState()
 
-  function changeLocation(nextLocationId) {
-    setStoredLocation(nextLocationId)
-    try {
-      window.localStorage.setItem(LOCATION_STORAGE_KEY, nextLocationId)
-    } catch {
-      // Storage can be unavailable (for example in private browsing); the choice still applies.
-    }
-  }
+  useEffect(() => {
+    const entry = LANGUAGES.find((item) => item.id === language)
+    document.documentElement.lang = entry?.htmlLang ?? 'en'
+  }, [language])
 
-  const currentSection = sections.find((section) => section.id === activeSection)
-  const pageProps = { section: currentSection, region, sources, locationId, onLocationChange: changeLocation }
-
-  function navigateToSection(sectionId) {
-    setActiveSection(sectionId)
-    setMobileNavigationOpen(false)
-  }
+  if (!hydrated) return null
 
   return (
-    <div className="app-shell">
-      {mobileNavigationOpen && (
-        <button
-          aria-label="Close navigation menu"
-          className="navigation-backdrop"
-          onClick={() => setMobileNavigationOpen(false)}
-          type="button"
+    <HashRouter>
+      <Routes>
+        <Route
+          element={profile ? <PlanScreen /> : <Navigate replace to="/setup/location" />}
+          path="/"
         />
-      )}
-      <Sidebar
-        activeSection={activeSection}
-        isMobileOpen={mobileNavigationOpen}
-        onNavigate={navigateToSection}
-      />
-      <div className="main-column">
-        <Topbar
-          health={health}
-          onMenuClick={() => setMobileNavigationOpen(true)}
-          section={currentSection}
-        />
-        <main className="main-content" id="main-content">
-          {activeSection === 'overview' && (
-            <DashboardOverview health={health} onNavigate={navigateToSection} {...pageProps} />
-          )}
-          {activeSection === 'climate' && <ClimatePage {...pageProps} />}
-          {activeSection === 'environmental-data' && <EnvironmentalDataPage {...pageProps} />}
-          {activeSection === 'recommendations' && <CropRecommendationsPage {...pageProps} />}
-          {activeSection === 'rotation' && <RotationPlannerPage {...pageProps} />}
-          {!['overview', 'climate', 'environmental-data', 'recommendations', 'rotation'].includes(activeSection) && (
-            <SectionPage section={currentSection} />
-          )}
-          <footer className="page-footer">
-            <span>FarmShift AI</span>
-            <span>Decision support, grounded in environmental data.</span>
-          </footer>
-        </main>
-      </div>
-      <a className="skip-link" href="#main-content">
-        Skip to content
-      </a>
-    </div>
+        <Route element={<SetupRoute />} path="/setup/:step" />
+        <Route element={<Navigate replace to="/" />} path="*" />
+      </Routes>
+    </HashRouter>
   )
 }
-
-export default App

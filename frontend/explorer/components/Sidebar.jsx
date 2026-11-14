@@ -40,6 +40,10 @@ function Sidebar({ activeSection, isMobileOpen, onNavigate }) {
       </nav>
 
       <div className="sidebar-bottom">
+        <a className="nav-item farm-app-link" href="./">
+          <Icon name="sprout" size={18} />
+          <span>Back to my farm plan</span>
+        </a>
         <div className="region-card">
           <span className="region-card-icon"><Icon name="leaf" size={17} /></span>
           <div>

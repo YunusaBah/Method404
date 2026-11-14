@@ -40,4 +40,34 @@ async function getRotationPlan(req, res, next) {
     }
 }
 
-module.exports = { getRecommendations, getRegion, getRotationPlan, getSourceData, getSummary, listSources };
+function getEngineDistricts(req, res) {
+    return res.status(200).json({ success: true, districts: gambiaDataService.engineDistricts() });
+}
+
+async function postEnginePlan(req, res, next) {
+    try {
+        return res.status(200).json(await gambiaDataService.enginePlan(req.body));
+    } catch (error) {
+        return next(error);
+    }
+}
+
+async function postEngineSlotOptions(req, res, next) {
+    try {
+        return res.status(200).json(await gambiaDataService.engineSlotOptions(req.body));
+    } catch (error) {
+        return next(error);
+    }
+}
+
+module.exports = {
+    getEngineDistricts,
+    getRecommendations,
+    getRegion,
+    getRotationPlan,
+    getSourceData,
+    getSummary,
+    listSources,
+    postEnginePlan,
+    postEngineSlotOptions
+};
