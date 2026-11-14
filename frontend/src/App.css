@@ -889,6 +889,241 @@
   max-width: 455px;
 }
 
+.climate-query-panel,
+.climate-summary-section,
+.climate-history-panel {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  min-width: 0;
+  padding: 20px;
+}
+
+.climate-query-panel h2,
+.climate-summary-section h2,
+.climate-history-panel h2 {
+  color: #344139;
+  font-size: 14px;
+  font-weight: 680;
+  letter-spacing: -0.2px;
+  margin: 5px 0 0;
+}
+
+.climate-query-form {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.climate-query-form label {
+  color: #526055;
+  display: grid;
+  font-size: 10px;
+  font-weight: 650;
+  gap: 6px;
+}
+
+.climate-query-form input {
+  background: #fff;
+  border: 1px solid #dfe5dc;
+  border-radius: 6px;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 12px;
+  min-height: 38px;
+  min-width: 0;
+  padding: 8px 9px;
+}
+
+.climate-query-form input:focus-visible,
+.climate-submit-button:focus-visible {
+  outline: 3px solid #93ad7d;
+  outline-offset: 2px;
+}
+
+.climate-submit-button {
+  background: var(--color-forest);
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 670;
+  grid-column: 1 / -1;
+  justify-self: start;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.climate-submit-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.climate-error,
+.climate-loading {
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 12px 0 0;
+}
+
+.climate-error {
+  color: #a64e40;
+}
+
+.climate-loading {
+  color: #667366;
+}
+
+.climate-provenance {
+  background: #f1f5ee;
+  border: 1px solid #e2eade;
+  border-radius: 9px;
+  display: grid;
+  gap: 13px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 15px 17px;
+}
+
+.climate-provenance div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.climate-provenance div > span {
+  color: #7d877b;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.climate-provenance strong {
+  color: #39453c;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.climate-provenance p {
+  color: #697668;
+  font-size: 9px;
+  grid-column: 1 / -1;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.climate-metric-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 15px;
+}
+
+.climate-metric-card {
+  background: #fafbf9;
+  border: 1px solid #edf0ea;
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 13px;
+}
+
+.climate-metric-card > span {
+  color: #788277;
+  font-size: 10px;
+}
+
+.climate-metric-card strong {
+  color: #344139;
+  font-size: 18px;
+  font-weight: 680;
+  letter-spacing: -0.4px;
+  overflow-wrap: anywhere;
+}
+
+.climate-metric-card small {
+  color: #8a9287;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.climate-chart-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 15px;
+}
+
+.climate-chart {
+  border: 1px solid #edf0ea;
+  border-radius: 8px;
+  min-width: 0;
+  padding: 12px 13px 9px;
+}
+
+.climate-chart-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.climate-chart-heading h3 {
+  color: #48544a;
+  font-size: 10px;
+  font-weight: 670;
+  margin: 0;
+}
+
+.climate-chart-heading > span {
+  color: #8a9287;
+  font-size: 9px;
+}
+
+.climate-chart-plot {
+  margin-top: 10px;
+  position: relative;
+}
+
+.climate-chart-svg {
+  display: block;
+  height: auto;
+  overflow: visible;
+  width: 100%;
+}
+
+.climate-grid-line {
+  stroke: #edf0ea;
+  stroke-dasharray: 3 4;
+  stroke-width: 1;
+}
+
+.climate-chart-date {
+  fill: #8a9287;
+  font-size: 10px;
+}
+
+.climate-chart-scale {
+  color: #8a9287;
+  display: flex;
+  font-size: 8px;
+  justify-content: space-between;
+  margin-top: -14px;
+  pointer-events: none;
+}
+
+.climate-chart-empty {
+  color: #858e83;
+  font-size: 9px;
+  line-height: 1.5;
+  margin: 14px 0 7px;
+}
+
+.source-state--available {
+  color: #4a704c;
+}
+
 .page-footer {
   align-items: center;
   border-top: 1px solid var(--color-border);
@@ -1156,6 +1391,19 @@
   .section-empty-panel {
     min-height: 300px;
     padding: 26px 20px;
+  }
+
+  .climate-query-form,
+  .climate-provenance {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .climate-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .climate-chart-grid {
+    grid-template-columns: 1fr;
   }
 
   .section-empty-panel h2 {

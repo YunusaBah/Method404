@@ -25,9 +25,9 @@ Copy-Item frontend\.env.example frontend\.env
 Copy-Item data-processing\.env.example data-processing\.env
 ```
 
-The repository includes a local `backend/.env` with development defaults and
-empty optional Supabase values. It is ignored by Git. Never put real
-credentials in an example file or frontend environment file.
+The repository may include a local `backend/.env` with development defaults.
+It is ignored by Git. Never put secret credentials in an example file or
+frontend environment file.
 
 Run the API and Vite together from the repository root with `npm run dev`, or
 run either service using `npm run dev:backend` / `npm run dev:frontend`. The
@@ -43,32 +43,32 @@ when necessary and sets Vite's API base URL to that backend's `/api` path.
 | `CLIENT_URL` | `http://localhost:5173` | Primary frontend origin; must be an origin, without a path. |
 | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated exact browser origins allowed by CORS. |
 | `NASA_POWER_BASE_URL` | NASA POWER daily point endpoint | Server-side NASA POWER endpoint. Production requires HTTPS. |
-| `SUPABASE_URL` | Empty | Optional future Supabase project URL. |
-| `SUPABASE_ANON_KEY` | Empty | Optional public Supabase key; backend-only configuration for now. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Empty | Optional privileged key; keep secret and backend-only. |
-| `DATABASE_URL` | Empty | Optional PostgreSQL connection URL; backend-only. Required only when using database features. |
+| `SUPABASE_URL` | Empty | Supabase project URL. |
+| `SUPABASE_PUBLISHABLE_KEY` | Empty | Public key used with a verified user's access token for RLS-scoped API operations. |
+| `SUPABASE_SECRET_KEY` | Empty | Backend-only secret key, used only for the Supabase health check. |
 
 Backend configuration is loaded from `backend/.env`. Invalid values stop the
-server with a descriptive configuration error. Supabase values are optional
-until needed. The backend PostgreSQL pool uses TLS with certificate
-verification. Check connectivity with `npm run db:check --prefix backend`;
-`GET /api/health/database` reports connected/unavailable without exposing
-connection details. For an IPv4-only network, choose **Session pooler** in the
-Supabase Dashboard's **Connect** dialog and put its exact URI in `DATABASE_URL`.
-Pooler hosts are project-specific; don't construct them from the region. Replace
-the password placeholder locally, URL-encoding reserved characters. If
-authentication is rejected, reset the database password in Supabase and update
-the URI. Never disable TLS verification to work around certificate errors.
+server with a descriptive configuration error. Supabase settings may remain
+empty for frontend/backend development, but Supabase endpoints report a clear
+configuration error until the appropriate keys are supplied. Database
+operations use the caller's verified Supabase access token with the public
+key, so PostgreSQL row-level security remains active. The secret key is used
+only by the backend health check and must never be used for ordinary user
+operations. Check connectivity with `npm run db:check --prefix backend` or
+`GET /api/health/supabase`.
 
 ### Frontend variables
 
 | Variable | Default | Description |
 | --- | --- | --- |
 | `VITE_API_BASE_URL` | `http://localhost:5000/api` | Public URL of the API prefix used by the shared Axios client. |
+| `VITE_SUPABASE_URL` | Empty | Supabase project URL. |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Empty | Supabase browser publishable key for Auth. |
 
-Vite embeds every `VITE_` variable into browser assets. This variable must
-contain only the public API URL—never an API key, service-role key, database
-URL, or other credential. Axios uses a ten-second request timeout.
+Vite embeds every `VITE_` variable into browser assets. Only the Supabase
+publishable key may be exposed; never put `SUPABASE_SECRET_KEY`, a service-role
+key, a database URL, or any other secret in a `VITE_` variable. Axios uses a
+ten-second request timeout.
 
 ### Python variables
 
@@ -91,11 +91,9 @@ Set `NODE_ENV=production`, `CLIENT_URL` to the canonical frontend origin, and
 Production startup requires both origin settings, disallows localhost entries,
 and requires HTTPS for `NASA_POWER_BASE_URL` and `SUPABASE_URL`. Supply secrets
 through the deployment platform's secret manager, not source control. Keep
-`SUPABASE_SERVICE_ROLE_KEY` and `DATABASE_URL` exclusively in the backend
-runtime.
+`SUPABASE_SECRET_KEY` exclusively in the backend runtime.
 
-The application has a backend PostgreSQL connection pool and database
-connectivity check, but no user authentication, database schema, application
-queries, or persistence workflows yet. NASA SMAP/GPM/MODIS integrations also
-require separate implementation and testing before being considered
-operational.
+Supabase Auth is prepared for browser sign-in, and protected farm endpoints
+verify access tokens before issuing requests scoped to the user's RLS role.
+Apply the SQL migration described in
+[Supabase setup](SUPABASE_SETUP.md) before using persisted operations.

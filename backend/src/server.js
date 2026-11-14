@@ -4,6 +4,7 @@ const net = require("node:net");
 const { config } = require("./config");
 const healthRoutes = require("./routes/healthRoutes");
 const databaseRoutes = require("./routes/databaseRoutes");
+const farmRoutes = require("./routes/farmRoutes");
 const nasaRoutes = require("./routes/nasaRoutes");
 const gambiaRoutes = require("./routes/gambiaRoutes");
 const errorHandler = require("./middleware/errorHandler");
@@ -54,6 +55,8 @@ function createApp(appConfig = config) {
             endpoints: {
                 health: "/api/health",
                 databaseHealth: "/api/health/database",
+                supabaseHealth: "/api/health/supabase",
+                farms: "/api/farms",
                 nasaPowerDaily: "/api/nasa/power/daily",
                 gambiaRegion: "/api/gambia",
                 gambiaSources: "/api/gambia/sources",
@@ -66,6 +69,7 @@ function createApp(appConfig = config) {
     });
     app.use("/api/health", healthRoutes);
     app.use("/api/health/database", databaseRoutes);
+    app.use("/api/farms", farmRoutes);
     app.use("/api/nasa", nasaRoutes);
     app.use("/api/gambia", gambiaRoutes);
     app.use(errorHandler);

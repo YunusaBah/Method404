@@ -10,14 +10,26 @@ endpoint paths through its shared Axios client.
 | --- | --- | --- |
 | `GET /api` | Lists the API's available endpoints. | None |
 | `GET /api/health` | Confirms that the API process is reachable. | None |
-| `GET /api/health/database` | Checks connectivity to the configured PostgreSQL database. | None |
-| `GET /api/nasa/power/daily` | Proxies a validated daily point request to NASA POWER. | None |
-| `GET /api/gambia` | Lists The Gambia's bounds and the reference locations. | None |
+| `GET /api/health/database` | Backward-compatible database connectivity check. | None |
+| `GET /api/health/supabase` | Performs a Supabase Data API query against `profiles`. | None |
+| `GET /api/nasa/power` | Returns normalized NASA POWER daily observations and source metadata. | None |
+| `GET /api/nasa/power/summary` | Returns derived period summaries and the underlying daily observations. | None |
+| `GET /api/nasa/power/daily` | Backward-compatible raw NASA POWER response. | None |
+| `POST /api/farms` | Creates a farm owned by the authenticated user. | Supabase access token |
+| `GET /api/farms` | Lists only farms visible to the authenticated user. | Supabase access token |
+| `PATCH /api/farms/:farmId` | Updates an owned farm. | Supabase access token |
+| `POST /api/farms/:farmId/climate-observations/nasa` | Fetches NASA POWER data for the farm coordinates and saves observations. | Supabase access token |
+| `GET /api/farms/:farmId/climate-observations` | Retrieves climate history; accepts optional `start`, `end` (`YYYY-MM-DD`), and `limit` query parameters. | Supabase access token |
+| `GET /api/gambia` | Lists The Gambia's bounds and reference locations. | None |
 | `GET /api/gambia/sources` | Lists every connected data source. | None |
 | `GET /api/gambia/data/:sourceId` | Fetches one source for a location in The Gambia. | None |
 | `GET /api/gambia/summary` | Fetches every fast source for one location. | None |
 | `GET /api/gambia/recommendations` | Ranks crops for a location from suitability and current conditions. | None |
 | `GET /api/gambia/rotation` | Plans a multi-year crop rotation for an upland field. | None |
+
+Protected routes require `Authorization: Bearer <Supabase access token>`.
+Requests use the project publishable key plus that access token; the backend
+secret key is never used for ordinary farm or climate operations.
 
 `GET /api/health` returns:
 
@@ -32,19 +44,124 @@ endpoint paths through its shared Axios client.
 
 ### NASA POWER daily point request
 
-Supply all required query parameters. Coordinates are decimal degrees,
-`start` and `end` are valid calendar dates in `YYYYMMDD` format, and parameter
-names are comma-separated NASA POWER parameter identifiers:
+Request daily data for specific farm coordinates. Latitude and longitude are
+required decimal degrees; `start` and `end` are explicit, valid calendar dates
+in `YYYYMMDD` format. The service defaults to the supported Agroclimatology
+(`AG`) parameters, or accepts an explicit comma-separated subset:
 
 ```text
-GET /api/nasa/power/daily?latitude=13.45&longitude=-16.58&start=20240101&end=20240103&parameters=T2M,PRECTOTCORR&community=AG
+GET /api/nasa/power?latitude=13.45&longitude=-16.58&start=20240101&end=20240103
 ```
 
-`community` is optional and accepts `AG` (the default) or `RE`. The API returns
-the NASA POWER JSON response without fabricating or transforming observations.
-Responses for identical successful requests are cached in memory for five
-minutes; concurrent identical requests share one upstream request. This cache
-is process-local and is not a durable data store.
+To select parameters or a community explicitly:
+
+```text
+GET /api/nasa/power?latitude=13.45&longitude=-16.58&start=20240101&end=20240103&parameters=PRECTOTCORR,T2M,RH2M&community=AG
+GET /api/nasa/power/summary?latitude=13.45&longitude=-16.58&start=20240101&end=20240103
+```
+
+Only these parameters are accepted:
+
+| NASA POWER parameter | Meaning | Typical NASA unit |
+| --- | --- | --- |
+| `PRECTOTCORR` | Corrected precipitation | `mm/day` |
+| `T2M` | Temperature at 2 meters | `C` |
+| `T2M_MAX` | Maximum temperature at 2 meters | `C` |
+| `T2M_MIN` | Minimum temperature at 2 meters | `C` |
+| `RH2M` | Relative humidity at 2 meters | `%` |
+| `ALLSKY_SFC_SW_DWN` | All-sky surface shortwave downward irradiance | `MJ/m^2/day` |
+
+Units are taken from the NASA response metadata, not hardcoded into
+observations. The service sends `format=JSON` and `community=AG` by default.
+`community` accepts `AG` or `RE`; use `AG` for these Agroclimatology
+parameters. The raw-response compatibility endpoint retains the native
+NASA response shape.
+
+The normalized `/power` response contains:
+
+```json
+{
+  "source": "NASA POWER Daily API",
+  "attribution": "NASA Langley Research Center POWER Project",
+  "request": {
+    "latitude": 13.45,
+    "longitude": -16.58,
+    "start": "20240101",
+    "end": "20240103",
+    "community": "AG",
+    "parameters": ["PRECTOTCORR", "T2M", "T2M_MAX", "T2M_MIN", "RH2M", "ALLSKY_SFC_SW_DWN"]
+  },
+  "metadata": {
+    "header": {},
+    "messages": [],
+    "parameters": {},
+    "returnedDateCount": 3
+  },
+  "observations": [
+    {
+      "date": "2024-01-01",
+      "parameter": "ALLSKY_SFC_SW_DWN",
+      "value": 18.19,
+      "unit": "MJ/m^2/day",
+      "missing": false
+    }
+  ]
+}
+```
+
+The `metadata.header`, `metadata.messages`, and each requested parameter's
+metadata preserve fields returned by NASA. NASA's `-999` fill values and other
+non-numeric/missing values are represented as `value: null`, `missing: true`;
+no measurements are invented or interpolated.
+
+`/power/summary` returns `summaries` for average `T2M`, maximum `T2M_MAX`,
+minimum `T2M_MIN`, total `PRECTOTCORR`, average `RH2M`, and average
+`ALLSKY_SFC_SW_DWN`. Each summary includes its NASA unit, source parameter,
+and aggregation description; the response also includes the underlying
+normalized observations. These are derived statistics, not individual NASA
+observations. Missing values are excluded from calculations; if a parameter
+has no valid values its summary value is `null`.
+
+The exact coordinate supplied is sent to NASA POWER. It should be taken from
+the farm record when available; the service does not substitute a city
+centroid. NASA POWER is a gridded Earth-observation/reanalysis product, not an
+on-farm sensor, so an API point response should not be interpreted as a
+measurement at a particular field or plot. Availability, spatial resolution,
+and accuracy vary by parameter and date. The NASA request/response metadata
+and data limitations should accompany downstream use.
+
+For authenticated farm records, `POST
+/api/farms/:farmId/climate-observations/nasa` uses the stored farm coordinates,
+fetches NASA data, and upserts non-missing values into `climate_observations`.
+The unique key `(farm_id, source, parameter, observation_date)` prevents
+duplicate rows when the same farm/date is fetched again. `GET
+/api/farms/:farmId/climate-observations` retrieves the saved history subject
+to RLS.
+
+Successful requests are cached in memory for five minutes and concurrent
+identical requests share an upstream request. The cache is process-local, not
+a durable data store. NASA request timeouts return `504`; upstream/network or
+invalid-response failures return `502`.
+
+#### Live NASA verification
+
+The following actual upstream request was tested using a point in The Gambia
+for API verification only; it is not asserted to represent an individual farm:
+
+```text
+https://power.larc.nasa.gov/api/temporal/daily/point?latitude=13.45&longitude=-16.58&start=20240101&end=20240103&community=AG&parameters=PRECTOTCORR%2CT2M%2CT2M_MAX%2CT2M_MIN%2CRH2M%2CALLSKY_SFC_SW_DWN&format=JSON
+```
+
+NASA returned HTTP `200`, header API version `v2.10.3`, source metadata
+`MERRA2`, `SYN1DEG`, and `POWER`, 3 dates, and 18 parameter/date observations.
+Returned units were `mm/day`, `C`, `C`, `C`, `%`, and `MJ/m^2/day` for the
+parameters listed above. The first normalized observation was
+`ALLSKY_SFC_SW_DWN = 18.19 MJ/m^2/day` on `2024-01-01`. The summary route
+returned average `T2M` `24.05 C`, maximum `T2M_MAX` `28.5 C`, minimum
+`T2M_MIN` `20.34 C`, total `PRECTOTCORR` `1.59 mm/day`, average `RH2M`
+`60.52%`, and average solar radiation `17.6 MJ/m^2/day`. Invalid latitude
+and invalid calendar-date requests returned HTTP `400`; unit tests verified
+that NASA `-999` missing values become `null` and are excluded from summaries.
 
 ### Errors
 
@@ -77,12 +194,13 @@ allows local HTTP origins so Vite can use another local port. Production
 rejects an unlisted browser origin. Requests without an `Origin` header are
 allowed; CORS is not authentication or access control for non-browser clients.
 
-No endpoint currently requires authentication. Supabase is configuration-only:
-the backend has a PostgreSQL connection pool for `DATABASE_URL` and a database
-health check, but no application queries, user authentication, or persistence
-are implemented. Run `npm run db:check --prefix backend` to test the connection.
-The Supabase service-role key and database URL are read only by backend
-configuration and must never be copied into a `VITE_` variable.
+Authenticated farm and climate endpoints verify Supabase access tokens and
+preserve the user's RLS role when querying the database.
+`GET /api/health/supabase` performs a real select against the `profiles` table
+using the backend-only secret key and reports unavailable if the project or
+schema cannot be reached. See [Supabase setup](SUPABASE_SETUP.md) for migration
+and RLS details. The Supabase secret key must never be copied into a `VITE_`
+variable.
 
 ## The Gambia data endpoints
 

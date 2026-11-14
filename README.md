@@ -1,6 +1,6 @@
 # FarmShift AI — METHOD404
 
-FarmShift AI is an agricultural decision-support project for exploring environmental context for crop planning. The initial target region is The Gambia. The dashboard reads live climate, vegetation, terrain, crop-suitability and satellite data for locations in The Gambia; Supabase persistence is not yet integrated.
+FarmShift AI is an agricultural decision-support project for exploring environmental context for crop planning. The initial target region is The Gambia. Its React dashboard reads live climate, vegetation, terrain, crop-suitability and satellite catalogue data for locations in The Gambia. It also includes NASA POWER endpoints and Supabase-backed farm and climate-observation APIs; hosted persistence requires the Supabase schema migration to be applied.
 
 ## Requirements
 
@@ -34,9 +34,9 @@ Open the Vite URL printed in the frontend terminal (normally `http://localhost:5
 
 Backend settings are loaded from `backend/.env`. The repository includes an ignored development configuration; use `backend/.env.example` as the template for a fresh checkout. Production requires `CLIENT_URL` and `CORS_ORIGINS` to be set explicitly to exact frontend origins. Unlisted browser origins are rejected in production. Requests without an `Origin` header (for example, command-line health checks) are allowed.
 
-Copy `frontend/.env.example` to `frontend/.env` to set `VITE_API_BASE_URL`; it defaults to `http://localhost:5000/api`. The shared Axios client uses a ten-second timeout and reports connection failures consistently. Vite variables prefixed with `VITE_` are included in browser code, so use this setting only for public configuration; never put credentials or secrets in it.
+Copy `frontend/.env.example` to `frontend/.env` to set `VITE_API_BASE_URL`; it defaults to `http://localhost:5000/api`. Configure the Supabase project URL and publishable key for browser Auth. Vite variables prefixed with `VITE_` are included in browser code, so only public configuration belongs there; never put a secret key in a `VITE_` variable.
 
-The backend health check is available at `GET /api/health`. NASA POWER daily point data is available through the validated `GET /api/nasa/power/daily` proxy, and all 13 data sources are available for locations in The Gambia under `GET /api/gambia/data/:sourceId`. Supabase is configured for a future integration only; there is no authentication or persistence yet. See [API configuration](documentation/API_CONFIGURATION.md) and [environment setup](documentation/ENVIRONMENT_SETUP.md) for details.
+The backend health check is available at `GET /api/health`. NASA POWER daily point data and summaries are available at `GET /api/nasa/power` and `GET /api/nasa/power/summary`; all 13 data sources for locations in The Gambia are available under `GET /api/gambia/data/:sourceId`. `GET /api/health/supabase` checks the hosted Supabase Data API and `profiles` table, while authenticated farm and climate endpoints use the caller's Supabase access token and database RLS. See [Supabase setup](documentation/SUPABASE_SETUP.md), [API configuration](documentation/API_CONFIGURATION.md), [data sources](documentation/DATA_SOURCES.md), and [environment setup](documentation/ENVIRONMENT_SETUP.md) for details.
 
 ## Quality checks
 
@@ -50,4 +50,4 @@ npm run build
 
 ## Current scope
 
-Climate Insights, Crop Recommendations, the Crop Rotation Planner and Environmental Data use live data. Supabase persistence is a future integration. The interface does not present simulated or sample values as NASA observations.
+Climate Insights, Crop Recommendations, the Crop Rotation Planner and Environmental Data use live data. Supabase farm persistence is available after applying the hosted schema migration. The interface does not present simulated or sample values as NASA observations.

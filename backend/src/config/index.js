@@ -101,19 +101,11 @@ function loadConfig(env = process.env) {
     const supabaseUrl = env.SUPABASE_URL
         ? parseUrl(env.SUPABASE_URL, "SUPABASE_URL", { httpsOnly: nodeEnv === "production" })
         : "";
-    const databaseUrl = env.DATABASE_URL
-        ? parseUrl(env.DATABASE_URL, "DATABASE_URL", {
-            allowCredentials: true,
-            protocols: ["postgres:", "postgresql:"]
-        })
-        : "";
-
     // NASA Earthdata Login tokens are JSON Web Tokens (three dot-separated parts).
     const earthdataToken = (env.EARTHDATA_TOKEN || "").trim();
     if (earthdataToken && !/^[\w-]+\.[\w-]+\.[\w-]+$/.test(earthdataToken)) {
         throw new ConfigurationError("EARTHDATA_TOKEN must be a NASA Earthdata Login token.");
     }
-
     return Object.freeze({
         port,
         nodeEnv,
@@ -123,9 +115,8 @@ function loadConfig(env = process.env) {
         earthdata: Object.freeze({ token: earthdataToken }),
         supabase: Object.freeze({
             url: supabaseUrl,
-            anonKey: env.SUPABASE_ANON_KEY || "",
-            serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY || "",
-            databaseUrl
+            publishableKey: env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || "",
+            secretKey: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || ""
         })
     });
 }
