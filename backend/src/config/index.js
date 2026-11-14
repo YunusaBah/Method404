@@ -108,12 +108,19 @@ function loadConfig(env = process.env) {
         })
         : "";
 
+    // NASA Earthdata Login tokens are JSON Web Tokens (three dot-separated parts).
+    const earthdataToken = (env.EARTHDATA_TOKEN || "").trim();
+    if (earthdataToken && !/^[\w-]+\.[\w-]+\.[\w-]+$/.test(earthdataToken)) {
+        throw new ConfigurationError("EARTHDATA_TOKEN must be a NASA Earthdata Login token.");
+    }
+
     return Object.freeze({
         port,
         nodeEnv,
         clientUrl,
         allowedOrigins: Object.freeze(allowedOrigins),
         nasaPowerBaseUrl,
+        earthdata: Object.freeze({ token: earthdataToken }),
         supabase: Object.freeze({
             url: supabaseUrl,
             anonKey: env.SUPABASE_ANON_KEY || "",

@@ -102,3 +102,9 @@ test("production CORS rejects unlisted origins with a safe error response", asyn
         message: "This origin is not allowed."
     });
 });
+
+test("Earthdata token is optional and must look like an Earthdata Login token", () => {
+    assert.equal(loadConfig({}).earthdata.token, "");
+    assert.equal(loadConfig({ EARTHDATA_TOKEN: " aaa.bbb.ccc " }).earthdata.token, "aaa.bbb.ccc");
+    assert.throws(() => loadConfig({ EARTHDATA_TOKEN: "my password" }), /EARTHDATA_TOKEN must be/);
+});

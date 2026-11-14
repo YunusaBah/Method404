@@ -13,13 +13,13 @@ API_CONFIGURATION.md). "Values" sources return numbers for a point;
 | Need | Source | Status | Link |
 | --- | --- | --- | --- |
 | Temperature, rainfall, solar, humidity | NASA POWER | Values: `power` | https://power.larc.nasa.gov/ |
-| Soil moisture | SMAP | Catalogue: `smap` | https://www.earthdata.nasa.gov/data/platforms/space-based-platforms/smap |
-| Rainfall | GPM IMERG (Late Run) | Catalogue: `gpm-imerg` | https://gpm.nasa.gov/data |
+| Soil moisture | SMAP | Values with Earthdata token: `smap` | https://www.earthdata.nasa.gov/data/platforms/space-based-platforms/smap |
+| Rainfall | GPM IMERG (Late Run) | Values with Earthdata token: `gpm-imerg` | https://gpm.nasa.gov/data |
 | Vegetation indices, bare-field periods | MODIS / VIIRS | Values: `modis`, `viirs` (NDVI via NASA ORNL DAAC) | https://lpdaac.usgs.gov/products/ |
 | Field-scale reflectance (30 m) | Landsat | Catalogue: `landsat` (USGS STAC) | https://earthexplorer.usgs.gov/ |
 | Evapotranspiration, land-surface temperature | ECOSTRESS | Catalogue: `ecostress` | https://ecostress.jpl.nasa.gov/data |
 | Elevation, slope, erosion risk | SRTM | Values: `srtm` (via OpenTopoData) | https://www.earthdata.nasa.gov/data/instruments/srtm |
-| Land-surface water and energy | GLDAS | Catalogue: `gldas` | https://www.earthdata.nasa.gov/ |
+| Land-surface water and energy | GLDAS | Values with Earthdata token: `gldas` | https://www.earthdata.nasa.gov/ |
 | Crop suitability, soil constraints | FAO GAEZ v4 | Values: `gaez` | https://gaez.fao.org |
 | Field imagery (10-20 m) | Copernicus Sentinel-2 (ESA) | Catalogue: `sentinel2` (Copernicus STAC) | https://dataspace.copernicus.eu |
 | Daily climate reanalysis | ERA5 (ECMWF) | Values: `era5` (via Open-Meteo) | https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=overview |
@@ -40,9 +40,8 @@ also listed and are not expected to be needed.
 - Local soil data and crop characteristics for The Gambia are not in the
   challenge list. They must come from verified national or local sources,
   which take priority over global data for recommendations.
-- SMAP, GPM, ECOSTRESS, GLDAS and GRACE-FO files need a free Earthdata Login
-  to download. The backend lists them but does not yet download or decode
-  them, so it has no values from these sources.
+- SMAP, GPM and GLDAS values need `EARTHDATA_TOKEN` in `backend/.env`. ECOSTRESS
+  and GRACE-FO files are listed only; their values are not extracted yet.
 - Landsat previews redirect to a USGS login, so none are shown.
 
 ## NASA POWER parameters to request first

@@ -105,10 +105,10 @@ explain each source's resolution and limits.
 | `gaez` | FAO GAEZ v4 | Rain-fed suitability index (0–100) and class for 12 Gambian crops | `input`: `low` (default) or `high` |
 | `sentinel2` | Copernicus Sentinel-2 L2A STAC | Scenes covering the point, with previews | `start`, `end` (default: last 60 days), `maxCloud` (default 30), `limit` |
 | `landsat` | USGS Landsat Collection 2 STAC | Scenes covering the point | as `sentinel2` |
-| `smap` | NASA SMAP SPL3SMP_E (CMR) | Latest soil-moisture files | `start`, `end`, `limit` |
-| `gpm-imerg` | NASA GPM IMERG Late Run (CMR) | Latest daily rainfall files | as `smap` |
-| `ecostress` | NASA ECOSTRESS ECO_L2T_LSTE (CMR) | Latest land-surface temperature files | as `smap` |
-| `gldas` | NASA GLDAS Noah 0.25° (CMR) | Latest land-model files | as `smap` |
+| `smap` | NASA SMAP SPL3SMP_E | With a token: daily AM/PM soil moisture (m³/m³) for the 9 km cell. Without: latest files | `start`, `end` (default: 14 days ending yesterday; max 31) |
+| `gpm-imerg` | NASA GPM IMERG Late Run | With a token: daily rainfall (mm) for the 0.1° cell. Without: latest files | `start`, `end` (default: 30 days ending yesterday; max 62) |
+| `ecostress` | NASA ECOSTRESS ECO_L2T_LSTE (CMR) | Latest land-surface temperature files | `start`, `end`, `limit` |
+| `gldas` | NASA GLDAS Noah 0.25° | With a token: 3-hourly topsoil and root-zone moisture, rainfall, evapotranspiration and air temperature. Without: latest files | `limit` (default 16, max 40), or `start`, `end` |
 | `grace-fo` | NASA GRACE/GRACE-FO JPL mascons (CMR) | The water-storage file | `limit` |
 
 ```text
@@ -118,10 +118,20 @@ GET /api/gambia/summary?location=kerewan
 ```
 
 **Values and catalogue sources.** `power`, `era5`, `modis`, `viirs`, `srtm` and
-`gaez` return numbers for the point. The others are catalogue sources: they
+`gaez` return numbers for the point, and so do `smap`, `gpm-imerg` and `gldas`
+when `EARTHDATA_TOKEN` is set. The others are catalogue sources: they
 return the scenes or NASA files that cover the point, with download links.
-Downloading NASA Earthdata files requires a free Earthdata Login, and the
-backend does not yet download or decode them.
+Downloading NASA Earthdata files requires a free Earthdata Login. Put a token
+from https://urs.earthdata.nasa.gov/ in `backend/.env` as `EARTHDATA_TOKEN`
+(never in a `VITE_` variable). With a token, `smap`, `gpm-imerg` and `gldas`
+become values sources: the backend reads only the grid cell containing the
+location from each file through NASA's cloud OPeNDAP service
+(`opendap.earthdata.nasa.gov`), so a request transfers a few bytes per day
+instead of whole files. It sends at most six such reads at a time, and caches
+each one for seven days. GES DISC data (GPM, GLDAS) also requires approving
+the "NASA GESDISC DATA ARCHIVE" application in the Earthdata Login profile;
+otherwise these sources return `502 <SOURCE>_UNAUTHORIZED`. `ecostress` and
+`grace-fo` remain catalogue sources.
 
 **Summary.** `/api/gambia/summary` fetches all sources in parallel and reports
 each one's `status` separately, so one failing provider does not fail the

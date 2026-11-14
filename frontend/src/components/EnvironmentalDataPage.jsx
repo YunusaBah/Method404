@@ -13,8 +13,8 @@ const CATEGORIES = [
   { id: 'imagery', title: 'Satellite imagery', description: 'Recent field-scale scenes that cover the location.' },
   {
     id: 'earthdata',
-    title: 'NASA Earthdata files',
-    description: 'The latest NASA data files covering the location. Downloading them needs a free NASA Earthdata Login.',
+    title: 'NASA Earthdata',
+    description: 'Soil moisture, rainfall and land-surface data from NASA missions, read with the team’s Earthdata Login.',
   },
 ]
 
@@ -124,7 +124,54 @@ function ImagerySummary({ result }) {
   )
 }
 
+function formatTime(value) {
+  if (!value) return '—'
+  if (value.length === 10) return formatDate(value)
+  return new Date(value).toLocaleString(undefined, {
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC', timeZoneName: 'short',
+  })
+}
+
+function EarthdataValues({ result }) {
+  const { fields, series, gridCell } = result.data
+  const timeKey = 'date' in (series[0] ?? {}) ? 'date' : 'time'
+  const rows = [...series].reverse()
+  const withData = series.filter((row) => fields.some((field) => row[field.key] !== null)).length
+
+  if (!series.length) return <p className="load-state">No readings were found for this period.</p>
+
+  return (
+    <>
+      <p className="card-footnote">
+        {withData} of {series.length} {timeKey === 'date' ? 'days' : 'time steps'} have readings
+        · {gridCell.resolution}
+      </p>
+      <div className="table-scroll table-scroll--short">
+        <table className="data-table data-table--compact">
+          <thead>
+            <tr>
+              <th>{timeKey === 'date' ? 'Date' : 'Time'}</th>
+              {fields.map((field) => <th key={field.key}>{field.label} ({field.unit})</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row[timeKey]}>
+                <th scope="row">{formatTime(row[timeKey])}</th>
+                {fields.map((field) => (
+                  <td key={field.key}>{formatNumber(row[field.key], field.digits)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
+
 function EarthdataSummary({ result }) {
+  if (result.data.series) return <EarthdataValues result={result} />
   const { granules } = result.data
   if (!granules.length) return <p className="load-state">No files cover this location yet.</p>
 

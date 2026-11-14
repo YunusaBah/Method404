@@ -4,6 +4,7 @@ const { resolveLocation, isInGambia } = require("../src/config/gambia");
 const { resolveDateRange } = require("../src/services/gambia/dates");
 const { slopeFromGrid } = require("../src/services/gambia/terrain");
 const { suitabilityClass } = require("../src/services/gambia/crops");
+const { ease2GridCell } = require("../src/services/gambia/opendap");
 const { createGambiaDataService } = require("../src/services/gambiaDataService");
 
 const NOW = Date.parse("2026-11-14T12:00:00Z");
@@ -248,7 +249,7 @@ test("lists the latest Earthdata files for a point and prefers the main data fil
             }]
         }
     })]]);
-    const service = createGambiaDataService({ now, fetchImpl });
+    const service = createGambiaDataService({ now, fetchImpl, earthdataToken: "" });
 
     const latest = await service.getSourceData("ecostress", {});
     const ranged = await service.getSourceData("smap", { start: "2026-11-01", end: "2026-11-10" });
@@ -275,6 +276,7 @@ test("summary reports each source separately and skips slow sources by default",
     const service = createGambiaDataService({
         now,
         fetchImpl,
+        earthdataToken: "",
         powerService: { getDailyPointData: async () => ({ properties: { parameter: { T2M: {} } } }) }
     });
 
@@ -292,10 +294,98 @@ test("summary reports each source separately and skips slow sources by default",
 });
 
 test("lists sources and rejects unknown sources", async () => {
-    const service = createGambiaDataService({ now, fetchImpl: fakeFetch([]) });
+    const service = createGambiaDataService({ now, fetchImpl: fakeFetch([]), earthdataToken: "" });
     const { sources } = service.listSources();
 
     assert.equal(sources.length, 13);
     assert.deepEqual(sources.filter((source) => source.slow).map((source) => source.id), ["modis", "viirs"]);
     await assert.rejects(service.getSourceData("weather", {}), /Unknown data source/);
+});
+
+test("finds the SMAP EASE-Grid 2.0 cell for a location", () => {
+    // Verified against the latitude and longitude stored in SMAP files:
+    // cell (622, 1769) is centred at 13.5021, -14.7977.
+    assert.deepEqual(ease2GridCell(13.5352, -14.7663), { row: 622, column: 1769 });
+});
+
+function cmrEntry(id, timeStart, opendapUrl) {
+    return {
+        producer_granule_id: id,
+        time_start: timeStart,
+        links: [{ rel: "http://esipfed.org/ns/fedsearch/1.1/service#", href: opendapUrl }]
+    };
+}
+
+test("reads SMAP point values through OPeNDAP when an Earthdata token is set", async () => {
+    const fetchImpl = fakeFetch([
+        ["cmr.earthdata.nasa.gov", () => Response.json({
+            feed: {
+                entry: [
+                    cmrEntry("SMAP_20261112_002.h5", "2026-11-12T00:00:00Z", "https://opendap.earthdata.nasa.gov/smap-12-v2"),
+                    cmrEntry("SMAP_20261112_001.h5", "2026-11-12T00:00:00Z", "https://opendap.earthdata.nasa.gov/smap-12-v1"),
+                    cmrEntry("SMAP_20261111_001.h5", "2026-11-11T00:00:00Z", "https://opendap.earthdata.nasa.gov/smap-11")
+                ]
+            }
+        })],
+        ["opendap.earthdata.nasa.gov/smap-12-v2", () => new Response([
+            "Dataset: SMAP_20261112_002.h5",
+            "/Soil_Moisture_Retrieval_Data_AM/soil_moisture[0], 0.1016, 0.0943",
+            "/Soil_Moisture_Retrieval_Data_PM/soil_moisture_pm[0], -9999, -9999"
+        ].join("\n"))],
+        ["opendap.earthdata.nasa.gov/smap-11", () => new Response([
+            "/Soil_Moisture_Retrieval_Data_AM/soil_moisture[0], -9999, -9999",
+            "/Soil_Moisture_Retrieval_Data_PM/soil_moisture_pm[0], 0.0867, 0.0755"
+        ].join("\n"))]
+    ]);
+    const service = createGambiaDataService({ now, fetchImpl, earthdataToken: "test.earthdata.token" });
+
+    const result = await service.getSourceData("smap", {});
+    const opendapCall = fetchImpl.calls.find((call) => call.url.host === "opendap.earthdata.nasa.gov");
+
+    assert.equal(result.source.access, "values");
+    assert.equal(opendapCall.init.headers.Authorization, "Bearer test.earthdata.token");
+    assert.equal(opendapCall.url.pathname.endsWith(".dap.csv"), true);
+    assert.match(opendapCall.url.searchParams.get("dap4.ce"), /soil_moisture\[622:622\]\[1769:1770\]/);
+    // The older _001 file for 12 November is never read.
+    assert.equal(fetchImpl.calls.some((call) => call.url.pathname.includes("smap-12-v1")), false);
+    assert.deepEqual(result.data.series, [
+        { date: "2026-11-11", soilMoistureAm: null, soilMoisturePm: 0.087 },
+        { date: "2026-11-12", soilMoistureAm: 0.102, soilMoisturePm: null }
+    ]);
+    assert.equal(result.request.start, "2026-10-31");
+    assert.equal(result.request.end, "2026-11-13");
+});
+
+test("converts GLDAS units and reports a refused token clearly", async () => {
+    let refuse = false;
+    const fetchImpl = fakeFetch([
+        ["cmr.earthdata.nasa.gov", () => Response.json({
+            feed: { entry: [cmrEntry("GLDAS_A20260731.2100", "2026-07-31T21:00:00Z", "https://opendap.earthdata.nasa.gov/gldas")] }
+        })],
+        ["opendap.earthdata.nasa.gov/gldas", () => refuse
+            ? new Response("EULA", { status: 403 })
+            : new Response([
+                "/SoilMoi0_10cm_inst[0][0], 31.3564, 26.0672",
+                "/RootMoist_inst[0][0], 320.379, 305.284",
+                "/Rainf_f_tavg[0][0], 0.0001, 0",
+                "/Evap_tavg[0][0], 0.00005, 0",
+                "/Tair_f_inst[0][0], 300.15, 299"
+            ].join("\n"))]
+    ]);
+    const service = createGambiaDataService({ now, fetchImpl, earthdataToken: "test.earthdata.token" });
+
+    const result = await service.getSourceData("gldas", { location: "basse" });
+
+    assert.deepEqual(result.data.series[0], {
+        time: "2026-07-31T21:00:00Z",
+        soilMoisture0To10cm: 0.314,
+        rootZoneMoisture: 320.4,
+        rainfallRate: 0.36,
+        evapotranspirationRate: 0.18,
+        airTemperature: 27
+    });
+
+    refuse = true;
+    const refusingService = createGambiaDataService({ now, fetchImpl, earthdataToken: "test.earthdata.token" });
+    await assert.rejects(refusingService.getSourceData("gldas", {}), /refused the token/);
 });
