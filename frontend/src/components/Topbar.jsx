@@ -1,43 +1,26 @@
-import Icon from './Icon.jsx'
+import { ArrowLeft } from 'lucide-react'
+import { useT } from '../i18n'
+import { AudioButton } from './AudioButton'
 
-function Topbar({ health, onMenuClick, section }) {
-  const healthLabel = {
-    loading: 'Connecting to API',
-    success: 'API connected',
-    error: 'API unavailable',
-  }[health.status]
+export function TopBar({ audioKeys, onBack, title }) {
+  const { t } = useT()
 
   return (
     <header className="topbar">
-      <button
-        aria-label="Open navigation menu"
-        className="mobile-menu-button"
-        onClick={onMenuClick}
-        type="button"
-      >
-        <Icon name="menu" size={21} />
-      </button>
-      <div className="breadcrumbs">
-        <span>FarmShift AI</span>
-        <span aria-hidden="true" className="breadcrumb-divider">/</span>
-        <strong>{section?.label ?? 'Overview'}</strong>
+      <div className="topbar__left">
+        {onBack ? (
+          <button
+            aria-label={t('common.back')}
+            className="icon-button"
+            onClick={onBack}
+            type="button"
+          >
+            <ArrowLeft size={24} strokeWidth={2} />
+          </button>
+        ) : null}
+        <p className="topbar__title">{title}</p>
       </div>
-      <div className="topbar-actions">
-        <div className="topbar-region">
-          <span className="region-dot" />
-          The Gambia
-        </div>
-        <div
-          aria-live="polite"
-          className={`connection-indicator connection-indicator--${health.status}`}
-          role="status"
-        >
-          <span className="connection-dot" />
-          <span>{healthLabel}</span>
-        </div>
-      </div>
+      <AudioButton keys={audioKeys} />
     </header>
   )
 }
-
-export default Topbar

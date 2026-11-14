@@ -1,61 +1,45 @@
-import { useState } from 'react'
-import DashboardOverview from './components/DashboardOverview.jsx'
-import SectionPage from './components/SectionPage.jsx'
-import Sidebar from './components/Sidebar.jsx'
-import Topbar from './components/Topbar.jsx'
-import { sections } from './components/navigationSections.js'
-import { useBackendHealth } from './hooks/useBackendHealth.js'
-import './App.css'
+import { useEffect } from 'react'
+import { HashRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { LANGUAGES } from './i18n'
+import { LocationScreen } from './screens/Location'
+import { PlanScreen } from './screens/Plan'
+import { PrioritiesScreen } from './screens/Priorities'
+import { SoilScreen } from './screens/Soil'
+import { WaterScreen } from './screens/Water'
+import { useAppState } from './state/store'
 
-function App() {
-  const [activeSection, setActiveSection] = useState('overview')
-  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
-  const health = useBackendHealth()
-  const currentSection = sections.find((section) => section.id === activeSection)
+function SetupRoute() {
+  const { step } = useParams()
+  const { profile } = useAppState()
 
-  function navigateToSection(sectionId) {
-    setActiveSection(sectionId)
-    setMobileNavigationOpen(false)
-  }
-
-  return (
-    <div className="app-shell">
-      {mobileNavigationOpen && (
-        <button
-          aria-label="Close navigation menu"
-          className="navigation-backdrop"
-          onClick={() => setMobileNavigationOpen(false)}
-          type="button"
-        />
-      )}
-      <Sidebar
-        activeSection={activeSection}
-        isMobileOpen={mobileNavigationOpen}
-        onNavigate={navigateToSection}
-      />
-      <div className="main-column">
-        <Topbar
-          health={health}
-          onMenuClick={() => setMobileNavigationOpen(true)}
-          section={currentSection}
-        />
-        <main className="main-content" id="main-content">
-          {activeSection === 'overview' ? (
-            <DashboardOverview health={health} onNavigate={navigateToSection} />
-          ) : (
-            <SectionPage section={currentSection} />
-          )}
-          <footer className="page-footer">
-            <span>FarmShift AI</span>
-            <span>Decision support, grounded in environmental data.</span>
-          </footer>
-        </main>
-      </div>
-      <a className="skip-link" href="#main-content">
-        Skip to content
-      </a>
-    </div>
-  )
+  if (step === 'location') return <LocationScreen />
+  if (!profile) return <Navigate replace to="/setup/location" />
+  if (step === 'soil') return <SoilScreen />
+  if (step === 'water') return <WaterScreen />
+  if (step === 'priorities') return <PrioritiesScreen />
+  return <Navigate replace to="/" />
 }
 
-export default App
+export default function App() {
+  const { hydrated, language, profile } = useAppState()
+
+  useEffect(() => {
+    const entry = LANGUAGES.find((item) => item.id === language)
+    document.documentElement.lang = entry?.htmlLang ?? 'en'
+  }, [language])
+
+  if (!hydrated) return null
+
+  return (
+    <HashRouter>
+      <Routes>
+        <Route
+          element={profile ? <PlanScreen /> : <Navigate replace to="/setup/location" />}
+          path="/"
+        />
+        <Route element={<SetupRoute />} path="/setup/:step" />
+        <Route element={<Navigate replace to="/" />} path="*" />
+      </Routes>
+    </HashRouter>
+  )
+}
