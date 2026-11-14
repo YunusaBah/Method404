@@ -171,3 +171,10 @@ test("maps NASA POWER request timeouts to a gateway timeout", async () => {
         return true;
     });
 });
+
+test("accepts soil wetness parameters on request without adding them to the default set", () => {
+    const requested = validateRequest({ ...request, parameters: "T2M,GWETTOP,GWETROOT" }).parameters;
+
+    assert.deepEqual(requested, ["T2M", "GWETTOP", "GWETROOT"]);
+    assert.equal(SUPPORTED_PARAMETERS.includes("GWETROOT"), false);
+});

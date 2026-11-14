@@ -13,6 +13,10 @@ const SUPPORTED_PARAMETERS = Object.freeze([
     "RH2M",
     "ALLSKY_SFC_SW_DWN"
 ]);
+// Accepted when requested explicitly, but not part of the default set:
+// surface and root-zone soil wetness (0-1), used by the /api/gambia sources.
+const OPTIONAL_PARAMETERS = Object.freeze(["GWETTOP", "GWETROOT"]);
+const ACCEPTED_PARAMETERS = Object.freeze([...SUPPORTED_PARAMETERS, ...OPTIONAL_PARAMETERS]);
 
 function isValidDate(value) {
     if (typeof value !== "string" || !/^\d{8}$/.test(value)) {
@@ -62,14 +66,14 @@ function validateRequest({ latitude, longitude, start, end, parameters, communit
             : [];
     if (
         parameterList.length < 1 ||
-        parameterList.length > SUPPORTED_PARAMETERS.length ||
-        parameterList.some((parameter) => !SUPPORTED_PARAMETERS.includes(parameter)) ||
+        parameterList.length > ACCEPTED_PARAMETERS.length ||
+        parameterList.some((parameter) => !ACCEPTED_PARAMETERS.includes(parameter)) ||
         new Set(parameterList).size !== parameterList.length
     ) {
         throw new ApiError(
             400,
             "INVALID_PARAMETERS",
-            `parameters must be a comma-separated list of supported NASA POWER parameters: ${SUPPORTED_PARAMETERS.join(", ")}.`
+            `parameters must be a comma-separated list of supported NASA POWER parameters: ${ACCEPTED_PARAMETERS.join(", ")}.`
         );
     }
     if (typeof community !== "string" || !["AG", "RE"].includes(community)) {
