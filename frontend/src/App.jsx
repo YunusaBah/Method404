@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ClimatePage from './components/ClimatePage.jsx'
+import CropRecommendationsPage from './components/CropRecommendationsPage.jsx'
 import DashboardOverview from './components/DashboardOverview.jsx'
 import EnvironmentalDataPage from './components/EnvironmentalDataPage.jsx'
 import SectionPage from './components/SectionPage.jsx'
@@ -78,7 +79,8 @@ function App() {
           )}
           {activeSection === 'climate' && <ClimatePage {...pageProps} />}
           {activeSection === 'environmental-data' && <EnvironmentalDataPage {...pageProps} />}
-          {!['overview', 'climate', 'environmental-data'].includes(activeSection) && (
+          {activeSection === 'recommendations' && <CropRecommendationsPage {...pageProps} />}
+          {!['overview', 'climate', 'environmental-data', 'recommendations'].includes(activeSection) && (
             <SectionPage section={currentSection} />
           )}
           <footer className="page-footer">

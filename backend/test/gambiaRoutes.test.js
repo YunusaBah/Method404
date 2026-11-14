@@ -53,3 +53,10 @@ test("unknown sources return 404", async () => {
     assert.equal(response.status, 404);
     assert.equal((await response.json()).error.code, "UNKNOWN_SOURCE");
 });
+
+test("recommendations reject locations outside The Gambia", async () => {
+    const response = await fetch(`${baseUrl}/api/gambia/recommendations?latitude=14.69&longitude=-17.44`);
+
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error.code, "LOCATION_OUTSIDE_GAMBIA");
+});

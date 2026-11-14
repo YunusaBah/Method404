@@ -203,9 +203,9 @@ function DashboardOverview({ health, onNavigate, locationId, region, sources }) 
             title="Climate insights"
           />
           <PlanningCard
-            description="Compare options when regional data and guidance are ready."
+            description="See which crops suit your area and whether it is time to sow."
             icon="sprout"
-            label="UNDER DEVELOPMENT"
+            label="LIVE DATA"
             onClick={onNavigate}
             sectionId="recommendations"
             title="Crop recommendations"

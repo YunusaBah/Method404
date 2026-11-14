@@ -16,6 +16,7 @@ endpoint paths through its shared Axios client.
 | `GET /api/gambia/sources` | Lists every connected data source. | None |
 | `GET /api/gambia/data/:sourceId` | Fetches one source for a location in The Gambia. | None |
 | `GET /api/gambia/summary` | Fetches every fast source for one location. | None |
+| `GET /api/gambia/recommendations` | Ranks crops for a location from suitability and current conditions. | None |
 
 `GET /api/health` returns:
 
@@ -132,6 +133,18 @@ each one for seven days. GES DISC data (GPM, GLDAS) also requires approving
 the "NASA GESDISC DATA ARCHIVE" application in the Earthdata Login profile;
 otherwise these sources return `502 <SOURCE>_UNAUTHORIZED`. `ecostress` and
 `grace-fo` remain catalogue sources.
+
+**Crop recommendations.** `GET /api/gambia/recommendations?location=basse&input=low`
+(`input`: `low` or `high`) combines FAO GAEZ suitability (required) with GPM
+or NASA POWER rainfall, SMAP or NASA POWER soil moisture, and an ERA5 water
+balance. Each crop is placed in one group: `plant-now` (in its sowing window
+and the rains have started, using the Sivakumar 1988 onset rule),
+`plant-now-irrigated` (dry-season vegetables), `wait-for-rains`,
+`next-season` or `not-suitable` (rain-fed GAEZ index below 10). Every crop
+includes plain-language `reasons`, its sowing months, and FAO water-need and
+growing-period ranges. The response also returns `season`, `conditions` and
+the status of each input source. Sowing months and water needs are general
+regional guidance in `services/gambia/cropCalendar.js`.
 
 **Summary.** `/api/gambia/summary` fetches all sources in parallel and reports
 each one's `status` separately, so one failing provider does not fail the

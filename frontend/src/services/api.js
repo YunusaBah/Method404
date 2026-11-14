@@ -90,3 +90,18 @@ export async function fetchGambiaSourceData(sourceId, params = {}, { signal, slo
 
   return data
 }
+
+export async function fetchGambiaRecommendations(params = {}, { signal } = {}) {
+  const { data } = await apiClient.get('gambia/recommendations', {
+    params,
+    signal,
+    // Combines five sources, including NASA Earthdata point reads.
+    timeout: 90000,
+  })
+
+  if (data?.success !== true || !Array.isArray(data.crops)) {
+    throw new Error('The backend returned an unexpected recommendations response.')
+  }
+
+  return data
+}

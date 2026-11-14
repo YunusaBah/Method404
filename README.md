@@ -1,6 +1,6 @@
 # FarmShift AI — METHOD404
 
-FarmShift AI is an agricultural decision-support project for exploring environmental context for crop planning. The initial target region is The Gambia. The dashboard reads live climate, vegetation, terrain, crop-suitability and satellite data for locations in The Gambia; crop recommendations and Supabase persistence are not yet integrated.
+FarmShift AI is an agricultural decision-support project for exploring environmental context for crop planning. The initial target region is The Gambia. The dashboard reads live climate, vegetation, terrain, crop-suitability and satellite data for locations in The Gambia; crop rotation planning and Supabase persistence are not yet integrated.
 
 ## Requirements
 
@@ -50,4 +50,4 @@ npm run build
 
 ## Current scope
 
-Climate Insights and Environmental Data use live data. Crop recommendations, crop rotation planning and Supabase are placeholders or future integrations. The interface does not present simulated or sample values as NASA observations.
+Climate Insights, Crop Recommendations and Environmental Data use live data. Crop rotation planning and Supabase are placeholders or future integrations. The interface does not present simulated or sample values as NASA observations.

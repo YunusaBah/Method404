@@ -24,4 +24,12 @@ async function getSourceData(req, res, next) {
     }
 }
 
-module.exports = { getRegion, getSourceData, getSummary, listSources };
+async function getRecommendations(req, res, next) {
+    try {
+        return res.status(200).json(await gambiaDataService.getRecommendations(req.query));
+    } catch (error) {
+        return next(error);
+    }
+}
+
+module.exports = { getRecommendations, getRegion, getSourceData, getSummary, listSources };

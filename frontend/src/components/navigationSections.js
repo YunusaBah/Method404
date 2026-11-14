@@ -15,7 +15,7 @@ export const sections = [
     id: 'recommendations',
     label: 'Crop Recommendations',
     icon: 'sprout',
-    description: 'Review crop options when reliable local and climate data are available.',
+    description: 'Crop options ranked by long-term suitability and current rain and soil moisture.',
   },
   {
     id: 'rotation',
