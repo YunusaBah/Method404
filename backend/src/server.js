@@ -5,6 +5,7 @@ const { config } = require("./config");
 const healthRoutes = require("./routes/healthRoutes");
 const databaseRoutes = require("./routes/databaseRoutes");
 const nasaRoutes = require("./routes/nasaRoutes");
+const gambiaRoutes = require("./routes/gambiaRoutes");
 const errorHandler = require("./middleware/errorHandler");
 
 function isLocalDevelopmentOrigin(origin, nodeEnv) {
@@ -53,13 +54,18 @@ function createApp(appConfig = config) {
             endpoints: {
                 health: "/api/health",
                 databaseHealth: "/api/health/database",
-                nasaPowerDaily: "/api/nasa/power/daily"
+                nasaPowerDaily: "/api/nasa/power/daily",
+                gambiaRegion: "/api/gambia",
+                gambiaSources: "/api/gambia/sources",
+                gambiaSummary: "/api/gambia/summary",
+                gambiaSourceData: "/api/gambia/data/:sourceId"
             }
         });
     });
     app.use("/api/health", healthRoutes);
     app.use("/api/health/database", databaseRoutes);
     app.use("/api/nasa", nasaRoutes);
+    app.use("/api/gambia", gambiaRoutes);
     app.use(errorHandler);
 
     return app;

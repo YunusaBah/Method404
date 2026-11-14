@@ -1,17 +1,50 @@
 import { useState } from 'react'
+import ClimatePage from './components/ClimatePage.jsx'
 import DashboardOverview from './components/DashboardOverview.jsx'
+import EnvironmentalDataPage from './components/EnvironmentalDataPage.jsx'
 import SectionPage from './components/SectionPage.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import Topbar from './components/Topbar.jsx'
 import { sections } from './components/navigationSections.js'
+import { useApiResource } from './hooks/useApiResource.js'
 import { useBackendHealth } from './hooks/useBackendHealth.js'
+import { fetchGambiaRegion, fetchGambiaSources } from './services/api.js'
 import './App.css'
+import './DataPages.css'
+
+const LOCATION_STORAGE_KEY = 'farmshift.location'
+
+function readStoredLocation() {
+  try {
+    return window.localStorage.getItem(LOCATION_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
 
 function App() {
   const [activeSection, setActiveSection] = useState('overview')
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
   const health = useBackendHealth()
+  const region = useApiResource((signal) => fetchGambiaRegion({ signal }), [])
+  const sources = useApiResource((signal) => fetchGambiaSources({ signal }), [])
+  const [storedLocation, setStoredLocation] = useState(readStoredLocation)
+  const knownLocations = region.data?.locations ?? []
+  const locationId = knownLocations.some((location) => location.id === storedLocation)
+    ? storedLocation
+    : region.data?.defaultLocation ?? 'janjanbureh'
+
+  function changeLocation(nextLocationId) {
+    setStoredLocation(nextLocationId)
+    try {
+      window.localStorage.setItem(LOCATION_STORAGE_KEY, nextLocationId)
+    } catch {
+      // Storage can be unavailable (for example in private browsing); the choice still applies.
+    }
+  }
+
   const currentSection = sections.find((section) => section.id === activeSection)
+  const pageProps = { section: currentSection, region, sources, locationId, onLocationChange: changeLocation }
 
   function navigateToSection(sectionId) {
     setActiveSection(sectionId)
@@ -40,9 +73,12 @@ function App() {
           section={currentSection}
         />
         <main className="main-content" id="main-content">
-          {activeSection === 'overview' ? (
-            <DashboardOverview health={health} onNavigate={navigateToSection} />
-          ) : (
+          {activeSection === 'overview' && (
+            <DashboardOverview health={health} onNavigate={navigateToSection} {...pageProps} />
+          )}
+          {activeSection === 'climate' && <ClimatePage {...pageProps} />}
+          {activeSection === 'environmental-data' && <EnvironmentalDataPage {...pageProps} />}
+          {!['overview', 'climate', 'environmental-data'].includes(activeSection) && (
             <SectionPage section={currentSection} />
           )}
           <footer className="page-footer">

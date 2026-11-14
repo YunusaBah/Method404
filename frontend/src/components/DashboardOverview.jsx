@@ -1,6 +1,8 @@
 import Icon from './Icon.jsx'
-
-const dataSources = ['NASA POWER', 'NASA SMAP', 'NASA GPM', 'NASA MODIS']
+import LoadState from './LoadState.jsx'
+import { formatDate, formatNumber, latest, mean, sum } from './dataFormat.js'
+import { useApiResource } from '../hooks/useApiResource.js'
+import { fetchGambiaSourceData } from '../services/api.js'
 
 function HealthCard({ health, onRetry }) {
   const isConnected = health.status === 'success'
@@ -41,7 +43,10 @@ function HealthCard({ health, onRetry }) {
   )
 }
 
-function DataSourceCard() {
+function DataSourceCard({ sources, onNavigate }) {
+  const items = sources.data?.sources ?? []
+  const withValues = items.filter((source) => source.access === 'values').length
+
   return (
     <section aria-labelledby="data-sources-title" className="panel source-panel">
       <div className="panel-heading">
@@ -49,45 +54,72 @@ function DataSourceCard() {
           <span className="eyebrow">DATA FOUNDATION</span>
           <h2 id="data-sources-title">Earth observation sources</h2>
         </div>
-        <span className="planned-label">Planned</span>
+        {sources.status === 'success' && <span className="live-label">{items.length} connected</span>}
       </div>
       <p className="panel-description">
-        These NASA datasets are candidates for the environmental context layer.
-        No observations are connected yet.
+        {sources.status === 'success'
+          ? `${withValues} sources return values for The Gambia. The rest list the satellite scenes and NASA files that cover each location.`
+          : 'The data sources used for the environmental context layer.'}
       </p>
+      <LoadState loadingMessage="Loading data sources…" resource={sources} />
       <ul className="source-list">
-        {dataSources.map((source) => (
-          <li key={source}>
+        {items.map((source) => (
+          <li key={source.id}>
             <span className="source-icon"><Icon name="data" size={17} /></span>
-            <span>{source}</span>
-            <span className="source-state">Not connected</span>
+            <span>{source.name}</span>
+            <span className="source-state">{source.access === 'values' ? 'Values' : 'Catalogue'}</span>
           </li>
         ))}
       </ul>
+      <button className="panel-link" onClick={() => onNavigate('environmental-data')} type="button">
+        View all data <Icon name="arrowUpRight" size={16} />
+      </button>
     </section>
   )
 }
 
-function ClimatePanel({ onNavigate }) {
+function ClimatePanel({ onNavigate, locationId, region }) {
+  const power = useApiResource(
+    (signal) => fetchGambiaSourceData('power', { location: locationId }, { signal }),
+    [locationId],
+  )
+  const location = region.data?.locations.find((candidate) => candidate.id === locationId)
+  const rows = power.data?.data.daily ?? []
+
   return (
     <section aria-labelledby="climate-panel-title" className="panel climate-panel">
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">SEASONAL CONTEXT</span>
-          <h2 id="climate-panel-title">Climate signals</h2>
+          <span className="eyebrow">SEASONAL CONTEXT · {location ? location.name.toUpperCase() : 'THE GAMBIA'}</span>
+          <h2 id="climate-panel-title">Climate signals, last 30 days</h2>
         </div>
-        <span className="unavailable-label">Awaiting data</span>
+        {power.status === 'success' && <span className="live-label">NASA POWER</span>}
       </div>
-      <div className="empty-data-state">
-        <span className="empty-data-icon"><Icon name="climate" size={23} /></span>
-        <h3>No climate data connected</h3>
-        <p>
-          Climate indicators will appear here after a verified data source is
-          integrated. We do not display sample values as observations.
-        </p>
-      </div>
-      <button className="panel-link" onClick={() => onNavigate('environmental-data')} type="button">
-        Explore data sources <Icon name="arrowUpRight" size={16} />
+      <LoadState loadingMessage="Loading NASA POWER data…" resource={power} />
+      {power.status === 'success' && (
+        <>
+          <div className="stat-grid">
+            <div className="stat-tile">
+              <span className="stat-label">Total rainfall</span>
+              <strong>{formatNumber(sum(rows, 'PRECTOTCORR'))}<small> mm</small></strong>
+            </div>
+            <div className="stat-tile">
+              <span className="stat-label">Mean temperature</span>
+              <strong>{formatNumber(mean(rows, 'T2M'))}<small> °C</small></strong>
+            </div>
+            <div className="stat-tile">
+              <span className="stat-label">Root-zone soil wetness</span>
+              <strong>{formatNumber(latest(rows, 'GWETROOT'), 2)}</strong>
+              <span className="stat-note">0 is dry, 1 is saturated</span>
+            </div>
+          </div>
+          <p className="card-footnote">
+            {formatDate(power.data.request.start)} to {formatDate(power.data.request.end)}. Modelled and satellite-derived estimates.
+          </p>
+        </>
+      )}
+      <button className="panel-link" onClick={() => onNavigate('climate')} type="button">
+        Open climate insights <Icon name="arrowUpRight" size={16} />
       </button>
     </section>
   )
@@ -107,7 +139,7 @@ function PlanningCard({ icon, label, title, description, onClick, sectionId }) {
   )
 }
 
-function DashboardOverview({ health, onNavigate }) {
+function DashboardOverview({ health, onNavigate, locationId, region, sources }) {
   return (
     <div className="dashboard-page">
       <div className="page-heading">
@@ -149,8 +181,8 @@ function DashboardOverview({ health, onNavigate }) {
       <HealthCard health={health} onRetry={health.retry} />
 
       <div className="dashboard-grid">
-        <ClimatePanel onNavigate={onNavigate} />
-        <DataSourceCard />
+        <ClimatePanel locationId={locationId} onNavigate={onNavigate} region={region} />
+        <DataSourceCard onNavigate={onNavigate} sources={sources} />
       </div>
 
       <section aria-labelledby="planning-title" className="planning-section">
@@ -163,9 +195,9 @@ function DashboardOverview({ health, onNavigate }) {
         </div>
         <div className="planning-grid">
           <PlanningCard
-            description="See how environmental patterns can inform decisions."
+            description="Compare NASA POWER and ERA5 rainfall, temperature and soil moisture."
             icon="climate"
-            label="UNDER DEVELOPMENT"
+            label="LIVE DATA"
             onClick={onNavigate}
             sectionId="climate"
             title="Climate insights"

@@ -12,6 +12,10 @@ endpoint paths through its shared Axios client.
 | `GET /api/health` | Confirms that the API process is reachable. | None |
 | `GET /api/health/database` | Checks connectivity to the configured PostgreSQL database. | None |
 | `GET /api/nasa/power/daily` | Proxies a validated daily point request to NASA POWER. | None |
+| `GET /api/gambia` | Lists The Gambia's bounds and the reference locations. | None |
+| `GET /api/gambia/sources` | Lists every connected data source. | None |
+| `GET /api/gambia/data/:sourceId` | Fetches one source for a location in The Gambia. | None |
+| `GET /api/gambia/summary` | Fetches every fast source for one location. | None |
 
 `GET /api/health` returns:
 
@@ -78,9 +82,59 @@ are implemented. Run `npm run db:check --prefix backend` to test the connection.
 The Supabase service-role key and database URL are read only by backend
 configuration and must never be copied into a `VITE_` variable.
 
-## External data sources
+## The Gambia data endpoints
 
-NASA POWER daily point data is the only implemented external data proxy.
-NASA SMAP, NASA GPM, and NASA MODIS remain planned and are not operational.
-The upstream base URL is configurable through `NASA_POWER_BASE_URL`; no NASA
-API key is required or invented.
+Every `/api/gambia` endpoint takes a location in one of two ways:
+
+- `location`: one of `banjul`, `brikama`, `kerewan`, `mansa-konko`, `kuntaur`,
+  `janjanbureh` (the default) or `basse`, one per administrative region.
+- `latitude` and `longitude`: any point inside The Gambia. Points outside the
+  country return `400 LOCATION_OUTSIDE_GAMBIA` before any upstream request.
+
+Dates use `YYYY-MM-DD`. Every response includes `source`, `location`,
+`request` (the dates and options actually used), `data` and `notes`. The notes
+explain each source's resolution and limits.
+
+| `sourceId` | Source | Returns | Options |
+| --- | --- | --- | --- |
+| `power` | NASA POWER | Daily temperature, rainfall, humidity, solar radiation, soil wetness | `start`, `end` (default: 30 days ending 7 days ago), `parameters` |
+| `era5` | ERA5 reanalysis, via Open-Meteo | Daily temperature, rainfall, humidity, ET₀, soil moisture | `start`, `end` (same default) |
+| `modis` | MODIS MOD13Q1, via NASA ORNL DAAC | 16-day NDVI at 250 m | `composites` (1–10, default 6), `start`, `end` |
+| `viirs` | VIIRS VNP13A1, via NASA ORNL DAAC | 16-day NDVI at 500 m (ORNL record ends May 2024) | as `modis` |
+| `srtm` | SRTM 30 m, via OpenTopoData | Elevation and slope | none |
+| `gaez` | FAO GAEZ v4 | Rain-fed suitability index (0–100) and class for 12 Gambian crops | `input`: `low` (default) or `high` |
+| `sentinel2` | Copernicus Sentinel-2 L2A STAC | Scenes covering the point, with previews | `start`, `end` (default: last 60 days), `maxCloud` (default 30), `limit` |
+| `landsat` | USGS Landsat Collection 2 STAC | Scenes covering the point | as `sentinel2` |
+| `smap` | NASA SMAP SPL3SMP_E (CMR) | Latest soil-moisture files | `start`, `end`, `limit` |
+| `gpm-imerg` | NASA GPM IMERG Late Run (CMR) | Latest daily rainfall files | as `smap` |
+| `ecostress` | NASA ECOSTRESS ECO_L2T_LSTE (CMR) | Latest land-surface temperature files | as `smap` |
+| `gldas` | NASA GLDAS Noah 0.25° (CMR) | Latest land-model files | as `smap` |
+| `grace-fo` | NASA GRACE/GRACE-FO JPL mascons (CMR) | The water-storage file | `limit` |
+
+```text
+GET /api/gambia/data/power?location=basse&start=2026-08-01&end=2026-08-31
+GET /api/gambia/data/gaez?latitude=13.27&longitude=-16.65&input=high
+GET /api/gambia/summary?location=kerewan
+```
+
+**Values and catalogue sources.** `power`, `era5`, `modis`, `viirs`, `srtm` and
+`gaez` return numbers for the point. The others are catalogue sources: they
+return the scenes or NASA files that cover the point, with download links.
+Downloading NASA Earthdata files requires a free Earthdata Login, and the
+backend does not yet download or decode them.
+
+**Summary.** `/api/gambia/summary` fetches all sources in parallel and reports
+each one's `status` separately, so one failing provider does not fail the
+response. MODIS and VIIRS are skipped unless `include=all` is passed.
+
+**Slow sources.** The ORNL MODIS/VIIRS service often takes about a minute per
+request and returns HTTP 503 when busy. The backend sends it one request at a
+time, retries transient errors twice, and caches results for 12 hours, so a
+first load can take a few minutes.
+
+**Caching and timeouts.** Every source has a process-local in-memory cache,
+lasting 30 minutes for catalogues and up to 7 days for static data such as
+GAEZ and SRTM. Concurrent identical requests share one upstream call, and
+failures are not cached. Upstream failures return `502 <SOURCE>_ERROR` or
+`<SOURCE>_UNAVAILABLE`; timeouts return `504 <SOURCE>_TIMEOUT`. No API keys are
+required.

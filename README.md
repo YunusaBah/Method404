@@ -1,6 +1,6 @@
 # FarmShift AI — METHOD404
 
-FarmShift AI is an agricultural decision-support project for exploring environmental context for crop planning. The initial target region is The Gambia. The current dashboard is a frontend foundation; NASA data, crop recommendations, and Supabase persistence are not yet integrated.
+FarmShift AI is an agricultural decision-support project for exploring environmental context for crop planning. The initial target region is The Gambia. The dashboard reads live climate, vegetation, terrain, crop-suitability and satellite data for locations in The Gambia; crop recommendations and Supabase persistence are not yet integrated.
 
 ## Requirements
 
@@ -36,7 +36,7 @@ Backend settings are loaded from `backend/.env`. The repository includes an igno
 
 Copy `frontend/.env.example` to `frontend/.env` to set `VITE_API_BASE_URL`; it defaults to `http://localhost:5000/api`. The shared Axios client uses a ten-second timeout and reports connection failures consistently. Vite variables prefixed with `VITE_` are included in browser code, so use this setting only for public configuration; never put credentials or secrets in it.
 
-The backend health check is available at `GET /api/health`. NASA POWER daily point data is available through the validated `GET /api/nasa/power/daily` proxy. Supabase is configured for a future integration only; there is no authentication or persistence yet. See [API configuration](documentation/API_CONFIGURATION.md) and [environment setup](documentation/ENVIRONMENT_SETUP.md) for details.
+The backend health check is available at `GET /api/health`. NASA POWER daily point data is available through the validated `GET /api/nasa/power/daily` proxy, and all 13 data sources are available for locations in The Gambia under `GET /api/gambia/data/:sourceId`. Supabase is configured for a future integration only; there is no authentication or persistence yet. See [API configuration](documentation/API_CONFIGURATION.md) and [environment setup](documentation/ENVIRONMENT_SETUP.md) for details.
 
 ## Quality checks
 
@@ -50,4 +50,4 @@ npm run build
 
 ## Current scope
 
-Climate insights, crop recommendations, crop rotation planning, environmental observations, and Supabase are placeholders or future integrations. The interface does not present simulated or sample values as NASA observations.
+Climate Insights and Environmental Data use live data. Crop recommendations, crop rotation planning and Supabase are placeholders or future integrations. The interface does not present simulated or sample values as NASA observations.

@@ -61,3 +61,32 @@ export async function fetchBackendHealth({ signal } = {}) {
 
   return data
 }
+
+// The ORNL MODIS/VIIRS service is slow and is queried one request at a time,
+// so a first request can take several minutes. Results are then cached.
+const SLOW_SOURCE_TIMEOUT_MS = 300000
+const SOURCE_TIMEOUT_MS = 45000
+
+export async function fetchGambiaRegion({ signal } = {}) {
+  const { data } = await apiClient.get('gambia', { signal })
+  return data
+}
+
+export async function fetchGambiaSources({ signal } = {}) {
+  const { data } = await apiClient.get('gambia/sources', { signal })
+  return data
+}
+
+export async function fetchGambiaSourceData(sourceId, params = {}, { signal, slow = false } = {}) {
+  const { data } = await apiClient.get(`gambia/data/${encodeURIComponent(sourceId)}`, {
+    params,
+    signal,
+    timeout: slow ? SLOW_SOURCE_TIMEOUT_MS : SOURCE_TIMEOUT_MS,
+  })
+
+  if (data?.success !== true || !data.data) {
+    throw new Error('The backend returned an unexpected data response.')
+  }
+
+  return data
+}

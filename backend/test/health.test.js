@@ -58,7 +58,11 @@ test("GET /api lists available API endpoints", async () => {
         endpoints: {
             health: "/api/health",
             databaseHealth: "/api/health/database",
-            nasaPowerDaily: "/api/nasa/power/daily"
+            nasaPowerDaily: "/api/nasa/power/daily",
+            gambiaRegion: "/api/gambia",
+            gambiaSources: "/api/gambia/sources",
+            gambiaSummary: "/api/gambia/summary",
+            gambiaSourceData: "/api/gambia/data/:sourceId"
         }
     });
 });
