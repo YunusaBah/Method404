@@ -32,11 +32,11 @@ Open the Vite URL printed in the frontend terminal (normally `http://localhost:5
 
 ## Configuration
 
-Copy `backend/.env.example` to `backend/.env` to configure the server. `PORT` defaults to `5000`; `CORS_ORIGINS` is an optional comma-separated allowlist for deployment. In development, local HTTP origins such as `http://localhost:5173` are allowed so Vite can select another port if its default is busy. In production, set `CORS_ORIGINS` to the exact frontend origin(s). Requests without an `Origin` header (for example, command-line health checks) are allowed.
+Backend settings are loaded from `backend/.env`. The repository includes an ignored development configuration; use `backend/.env.example` as the template for a fresh checkout. Production requires `CLIENT_URL` and `CORS_ORIGINS` to be set explicitly to exact frontend origins. Unlisted browser origins are rejected in production. Requests without an `Origin` header (for example, command-line health checks) are allowed.
 
-Copy `frontend/.env.example` to `frontend/.env` to set `VITE_API_BASE_URL`. It defaults to `http://localhost:5000`. `VITE_PORT` can be set in the shell to choose Vite's starting port. Vite variables prefixed with `VITE_` are included in browser code, so use this setting only for public configuration; never put credentials or secrets in it.
+Copy `frontend/.env.example` to `frontend/.env` to set `VITE_API_BASE_URL`; it defaults to `http://localhost:5000/api`. The shared Axios client uses a ten-second timeout and reports connection failures consistently. Vite variables prefixed with `VITE_` are included in browser code, so use this setting only for public configuration; never put credentials or secrets in it.
 
-The backend health check is available at `GET /api/health`.
+The backend health check is available at `GET /api/health`. NASA POWER daily point data is available through the validated `GET /api/nasa/power/daily` proxy. Supabase is configured for a future integration only; there is no authentication or persistence yet. See [API configuration](documentation/API_CONFIGURATION.md) and [environment setup](documentation/ENVIRONMENT_SETUP.md) for details.
 
 ## Quality checks
 

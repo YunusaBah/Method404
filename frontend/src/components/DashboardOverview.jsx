@@ -22,7 +22,7 @@ function HealthCard({ health, onRetry }) {
           {isConnected
             ? health.data.message
             : health.status === 'loading'
-              ? 'Verifying the FarmShift service at localhost:5000.'
+              ? 'Verifying the FarmShift API.'
               : health.error}
         </p>
       </div>

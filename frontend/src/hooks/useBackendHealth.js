@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchBackendHealth } from '../services/api.js'
+import { fetchBackendHealth, isApiRequestCanceled } from '../services/api.js'
 
 export function useBackendHealth() {
   const [attempt, setAttempt] = useState(0)
@@ -11,7 +11,7 @@ export function useBackendHealth() {
     fetchBackendHealth({ signal: controller.signal })
       .then((data) => setHealth({ status: 'success', data }))
       .catch((error) => {
-        if (error.name !== 'AbortError') {
+        if (!isApiRequestCanceled(error)) {
           setHealth({ status: 'error', error: error.message })
         }
       })

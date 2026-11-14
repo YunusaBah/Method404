@@ -1,19 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const net = require("node:net");
-require("dotenv").config();
+const { config } = require("./config");
 const healthRoutes = require("./routes/healthRoutes");
+const databaseRoutes = require("./routes/databaseRoutes");
+const nasaRoutes = require("./routes/nasaRoutes");
 const errorHandler = require("./middleware/errorHandler");
 
-const app = express();
-
-const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-function isLocalDevelopmentOrigin(origin) {
-    if (process.env.NODE_ENV === "production") {
+function isLocalDevelopmentOrigin(origin, nodeEnv) {
+    if (nodeEnv === "production") {
         return false;
     }
 
@@ -26,14 +21,52 @@ function isLocalDevelopmentOrigin(origin) {
     }
 }
 
-app.use(cors({
-    origin: (origin, callback) => {
-        callback(null, !origin || allowedOrigins.includes(origin) || isLocalDevelopmentOrigin(origin));
-    }
-}));
-app.use(express.json());
+function createApp(appConfig = config) {
+    const app = express();
 
-const PORT = process.env.PORT || 5000;
+    app.use(cors({
+        origin: (origin, callback) => {
+            if (
+                !origin ||
+                appConfig.allowedOrigins.includes(origin) ||
+                isLocalDevelopmentOrigin(origin, appConfig.nodeEnv)
+            ) {
+                return callback(null, true);
+            }
+            if (appConfig.nodeEnv === "production") {
+                return callback(new Error("Origin is not allowed by CORS."));
+            }
+            return callback(null, false);
+        }
+    }));
+    app.use(express.json());
+    app.get("/", (req, res) => {
+        res.json({
+            message: "Welcome to FarmShift AI",
+            team: "METHOD404"
+        });
+    });
+    app.get("/api", (req, res) => {
+        res.json({
+            success: true,
+            message: "FarmShift AI API",
+            endpoints: {
+                health: "/api/health",
+                databaseHealth: "/api/health/database",
+                nasaPowerDaily: "/api/nasa/power/daily"
+            }
+        });
+    });
+    app.use("/api/health", healthRoutes);
+    app.use("/api/health/database", databaseRoutes);
+    app.use("/api/nasa", nasaRoutes);
+    app.use(errorHandler);
+
+    return app;
+}
+
+const app = createApp();
+const PORT = config.port;
 
 function assertPortAvailable(port) {
     return new Promise((resolve, reject) => {
@@ -68,16 +101,6 @@ function assertPortAvailable(port) {
     });
 }
 
-app.get("/", (req, res) => {
-    res.json({
-        message: "Welcome to FarmShift AI",
-        team: "METHOD404"
-    });
-});
-
-app.use("/api/health", healthRoutes);
-app.use(errorHandler);
-
 if (require.main === module) {
     assertPortAvailable(PORT)
         .then(() => {
@@ -96,3 +119,4 @@ if (require.main === module) {
 }
 
 module.exports = app;
+module.exports.createApp = createApp;

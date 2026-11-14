@@ -1,26 +1,63 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000')
+import axios from 'axios'
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api')
   .replace(/\/+$/, '')
 
-export async function fetchBackendHealth({ signal } = {}) {
-  const response = await fetch(`${API_BASE_URL}/api/health`, {
-    headers: { Accept: 'application/json' },
-    signal,
+export class ApiRequestError extends Error {
+  constructor(message, { code, status, cause } = {}) {
+    super(message, { cause })
+    this.name = 'ApiRequestError'
+    this.code = code
+    this.status = status
+  }
+}
+
+function normalizeApiError(error) {
+  if (axios.isCancel(error)) {
+    return error
+  }
+
+  const status = error.response?.status
+  const responseMessage = error.response?.data?.error?.message
+    || error.response?.data?.message
+  let message = responseMessage
+
+  if (!error.response) {
+    message = error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT'
+      ? 'The backend request timed out. Please try again.'
+      : 'Unable to connect to the FarmShift API. Check that the backend is running and try again.'
+  } else if (typeof responseMessage !== 'string') {
+    message = `The API request failed (${status}).`
+  }
+
+  return new ApiRequestError(message, {
+    code: error.code,
+    status,
+    cause: error,
   })
+}
 
-  let payload
-  try {
-    payload = await response.json()
-  } catch {
-    throw new Error('The backend returned an invalid response.')
-  }
+export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: { Accept: 'application/json' },
+})
 
-  if (!response.ok) {
-    throw new Error(payload?.message || `Health check failed (${response.status}).`)
-  }
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => Promise.reject(normalizeApiError(error)),
+)
 
-  if (payload?.success !== true || typeof payload.message !== 'string') {
+export function isApiRequestCanceled(error) {
+  return axios.isCancel(error)
+}
+
+export async function fetchBackendHealth({ signal } = {}) {
+  const { data } = await apiClient.get('health', { signal })
+
+  if (data?.success !== true || typeof data.message !== 'string') {
     throw new Error('The backend returned an unexpected health response.')
   }
 
-  return payload
+  return data
 }

@@ -141,7 +141,7 @@ async function startDevelopmentServers() {
 
     const frontendEnv = {
         ...process.env,
-        VITE_API_BASE_URL: process.env.VITE_API_BASE_URL || `http://localhost:${backendPort}`
+        VITE_API_BASE_URL: process.env.VITE_API_BASE_URL || `http://localhost:${backendPort}/api`
     };
     const frontendPort = process.env.VITE_PORT || "5173";
 

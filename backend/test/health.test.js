@@ -48,6 +48,21 @@ test("GET /api/health returns the existing health response", async () => {
     });
 });
 
+test("GET /api lists available API endpoints", async () => {
+    const response = await fetch(`${baseUrl}/api`);
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+        success: true,
+        message: "FarmShift AI API",
+        endpoints: {
+            health: "/api/health",
+            databaseHealth: "/api/health/database",
+            nasaPowerDaily: "/api/nasa/power/daily"
+        }
+    });
+});
+
 test("health endpoint allows the configured local frontend origin", async () => {
     const response = await fetch(`${baseUrl}/api/health`, {
         headers: { Origin: "http://localhost:5173" }
@@ -70,4 +85,20 @@ test("health endpoint does not grant CORS access to an unknown origin", async ()
     });
 
     assert.equal(response.headers.get("access-control-allow-origin"), null);
+});
+
+test("NASA POWER endpoint rejects invalid coordinates before contacting the upstream API", async () => {
+    const response = await fetch(
+        `${baseUrl}/api/nasa/power/daily?latitude=91&longitude=-16.58&start=20240101&end=20240103&parameters=T2M`
+    );
+
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), {
+        success: false,
+        error: {
+            code: "INVALID_LATITUDE",
+            message: "latitude must be a number between -90 and 90."
+        },
+        message: "latitude must be a number between -90 and 90."
+    });
 });
