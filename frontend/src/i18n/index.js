@@ -3,16 +3,13 @@ import mnk from './mnk.json'
 import wo from './wo.json'
 import ff from './ff.json'
 
-// Mandinka, Wolof and Pulaar dictionaries are still being translated, so every
-// lookup falls back to English. `complete` tells the language menu to say so
-// instead of pretending the switch worked.
 const dictionaries = { en, mnk, wo, ff }
 
 export const LANGUAGES = [
   { id: 'en', short: 'EN', label: 'English', native: 'English', speech: 'en-GB', complete: true },
   { id: 'mnk', short: 'MNK', label: 'Mandinka', native: 'Mandinka', speech: 'en-GB', complete: false },
-  { id: 'wo', short: 'WO', label: 'Wolof', native: 'Wolof', speech: 'fr-FR', complete: false },
-  { id: 'ff', short: 'FF', label: 'Pulaar', native: 'Pulaar', speech: 'fr-FR', complete: false },
+  { id: 'wo', short: 'WO', label: 'Wolof', native: 'Wolof', speech: 'fr-FR', complete: true },
+  { id: 'ff', short: 'FF', label: 'Pulaar', native: 'Pulaar', speech: 'fr-FR', complete: true },
 ]
 
 export function languageById(id) {

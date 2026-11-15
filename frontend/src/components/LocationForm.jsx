@@ -75,27 +75,50 @@ export function LocationForm({ onPlace }) {
   }
 
   function useMyLocation() {
-    if (!navigator.geolocation) {
-      setError('geo_denied')
+    const geolocation = navigator.geolocation
+    if (!geolocation?.getCurrentPosition) {
+      setError(window.isSecureContext === false ? 'geo_secure' : 'geo_unavailable')
       return
     }
+
     setLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocating(false)
-        const { latitude: lat, longitude: lon } = position.coords
-        const { district } = nearestDistrict(lat, lon)
-        setError(null)
-        setSuggestions([])
-        setQuery(district.name)
-        onPlace({ id: district.id, name: district.name, lat, lon })
-      },
-      () => {
-        setLocating(false)
-        setError('geo_denied')
-      },
-      { timeout: 12_000, maximumAge: 600_000 },
-    )
+    setError(null)
+    try {
+      geolocation.getCurrentPosition(
+        (position) => {
+          setLocating(false)
+          const lat = position?.coords?.latitude
+          const lon = position?.coords?.longitude
+          if (
+            !Number.isFinite(lat) ||
+            !Number.isFinite(lon) ||
+            lat < -90 ||
+            lat > 90 ||
+            lon < -180 ||
+            lon > 180
+          ) {
+            setError('geo_unavailable')
+            return
+          }
+
+          const { district } = nearestDistrict(lat, lon)
+          setError(null)
+          setSuggestions([])
+          setQuery(district.name)
+          onPlace({ id: district.id, name: district.name, lat, lon })
+        },
+        (positionError) => {
+          setLocating(false)
+          if (positionError.code === 1) setError('geo_denied')
+          else if (positionError.code === 3) setError('geo_timeout')
+          else setError('geo_unavailable')
+        },
+        { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
+      )
+    } catch {
+      setLocating(false)
+      setError(window.isSecureContext === false ? 'geo_secure' : 'geo_unavailable')
+    }
   }
 
   function startDictation() {
@@ -144,6 +167,9 @@ export function LocationForm({ onPlace }) {
     place: t('error.place'),
     speech: t('error.speech'),
     geo_denied: t('error.geo_denied'),
+    geo_secure: t('error.geo_secure'),
+    geo_timeout: t('error.geo_timeout'),
+    geo_unavailable: t('error.geo_unavailable'),
   }[error]
 
   const busy = resolving || status === 'loading'

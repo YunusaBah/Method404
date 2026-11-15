@@ -32,9 +32,10 @@ describe('LocationForm', () => {
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
-        getCurrentPosition: vi.fn((success) =>
-          success({ coords: { latitude: 13.6, longitude: -14.9 } }),
-        ),
+        getCurrentPosition: vi.fn((success, _failure, options) => {
+          expect(options).toEqual({ enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 })
+          success({ coords: { latitude: 13.6, longitude: -14.9 } })
+        }),
       },
     })
     const onPlace = vi.fn()
@@ -62,6 +63,69 @@ describe('LocationForm', () => {
     })
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Where is your field?')).toHaveValue('Kuntaur')
+  })
+
+  it('explains when a browser blocks access to location', async () => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: (_success, error) => error({ code: 1 }),
+      },
+    })
+    render(
+      <AppDataProvider>
+        <LocationForm onPlace={vi.fn()} />
+      </AppDataProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use my location' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Location access is blocked. Allow it in your browser settings, or choose a district below.',
+    )
+  })
+
+  it('explains when the GPS request times out', async () => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: (_success, error) => error({ code: 3 }),
+      },
+    })
+    render(
+      <AppDataProvider>
+        <LocationForm onPlace={vi.fn()} />
+      </AppDataProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use my location' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Finding your location took too long. Try again or choose a district below.',
+    )
+  })
+
+  it('does not use an invalid GPS fix', async () => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: (success) =>
+          success({ coords: { latitude: Number.NaN, longitude: -14.9 } }),
+      },
+    })
+    const onPlace = vi.fn()
+    render(
+      <AppDataProvider>
+        <LocationForm onPlace={onPlace} />
+      </AppDataProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use my location' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your location could not be determined.',
+    )
+    expect(onPlace).not.toHaveBeenCalled()
   })
 })
 
@@ -166,7 +230,7 @@ describe('LanguageMenu', () => {
         onSelect={onSelect}
         label="Language"
         chooseLabel="Choose a language"
-        pendingLabel="Shown in English until translated"
+        pendingLabel="Mandinka is shown in English until a native-reviewed translation is available."
       />,
     )
     return { onSelect }
@@ -181,17 +245,17 @@ describe('LanguageMenu', () => {
     expect(options.map((option) => option.textContent)).toEqual([
       'English',
       'MandinkaEN',
-      'WolofEN',
-      'PulaarEN',
+      'Wolof',
+      'Pulaar',
     ])
   })
 
-  it('marks English as selected and the others as untranslated', () => {
+  it('marks English as selected and only Mandinka as untranslated', () => {
     setup()
     fireEvent.click(screen.getByRole('button', { name: 'Language' }))
 
     expect(screen.getByRole('option', { name: /English/ })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getAllByTitle('Shown in English until translated')).toHaveLength(3)
+    expect(screen.getAllByTitle('Mandinka is shown in English until a native-reviewed translation is available.')).toHaveLength(1)
   })
 
   it('reports the chosen language', () => {

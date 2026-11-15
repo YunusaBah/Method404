@@ -184,11 +184,19 @@ itself needs neither the script nor the network.
 
 ## Languages
 
-The menu lists English, Mandinka, Wolof and Pulaar by their own names. Mandinka,
-Wolof and Pulaar carry an `EN` badge because their dictionaries are still being
-written: every lookup falls back to English, and the badge says so rather than
-pretending the switch changed something. `document.documentElement.lang` and the
+The menu lists English, Mandinka, Wolof and Pulaar by their own names. Wolof
+and Pulaar have draft translations that need review by native speakers.
+Mandinka falls back to English and carries an `EN` badge because no reliable
+translation source is available yet. `document.documentElement.lang` and the
 speech voice follow the selection, and it survives a reload.
+
+## Location
+
+“Use my location” requests a fresh, high-accuracy browser GPS fix, uses those
+coordinates for the weather and crop data, and labels the field with the
+nearest Gambian district. Browsers require HTTPS (or localhost) and location
+permission. If location is unavailable or times out, the page explains why and
+still lets the farmer choose a district manually.
 
 ## Voice and offline
 
@@ -259,8 +267,9 @@ of the calendar and rotation logic when it happens.
    Wikimedia Commons files, converted at build time to two WebP sizes by
    `scripts/fetch-crop-images.mjs`. Several are CC BY-SA, so the author, licence
    and source are shipped in `public/crops/CREDITS.md` and in `/api/crops`.
-6. **The language menu is honest about its gaps.** Three of the four languages
-   fall back to English until the dictionaries are translated.
+6. **The language menu is honest about its gaps.** Wolof and Pulaar are draft
+   translations; Mandinka falls back to English until a reliable translation is
+   available.
 
 ## Layout
 
