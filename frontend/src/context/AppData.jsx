@@ -13,7 +13,6 @@ import { translate } from '../i18n'
 import { bundledCatalogue } from '../data/traits'
 import {
   getSnapshot,
-  setHorizon,
   setLanguage,
   setPlace,
   setPriority,
@@ -23,7 +22,7 @@ import {
 import { AppDataContext } from './context'
 
 export function AppDataProvider({ children }) {
-  const { language, place, soil, priority, horizon } = useSyncExternalStore(subscribe, getSnapshot)
+  const { language, place, soil, priority } = useSyncExternalStore(subscribe, getSnapshot)
 
   const [status, setStatus] = useState(place ? 'loading' : 'idle')
   const [recommendation, setRecommendation] = useState(null)
@@ -93,8 +92,6 @@ export function AppDataProvider({ children }) {
       setSoil,
       priority,
       setPriority,
-      horizon,
-      setHorizon,
       status,
       error,
       recommendation,
@@ -107,7 +104,6 @@ export function AppDataProvider({ children }) {
       choosePlace,
       soil,
       priority,
-      horizon,
       status,
       error,
       recommendation,

@@ -1,15 +1,14 @@
 import { useAppData } from '../context/context'
 import { errorText } from '../lib/errors'
-import { yearKey } from '../lib/planning'
+import { DEFAULT_HORIZON, yearKey } from '../lib/planning'
 import { PlaceBar, PlaceGate } from '../components/PlaceGate'
-import { HorizonPicker } from '../components/HorizonPicker'
 import { MonthCalendar } from '../components/MonthCalendar'
 import { YearSummary } from '../components/YearSummary'
 import { Loading } from '../components/Loading'
 import { Notice } from '../components/Notice'
 
 export function Calendar() {
-  const { t, language, place, status, error, recommendation, horizon } = useAppData()
+  const { t, language, place, status, error, recommendation } = useAppData()
 
   return (
     <PlaceGate>
@@ -29,10 +28,8 @@ export function Calendar() {
 
         {status === 'ready' && recommendation && (
           <>
-            <HorizonPicker />
-
             <div className="years">
-              {Array.from({ length: horizon }, (_, offset) => (
+              {Array.from({ length: DEFAULT_HORIZON }, (_, offset) => (
                 <section className="year" key={offset}>
                   <header className="year__head">
                     <h2 className="year__title">{t(yearKey(offset), { n: offset })}</h2>

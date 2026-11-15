@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useAppData } from '../context/context'
 import { errorText } from '../lib/errors'
+import { DEFAULT_HORIZON } from '../lib/planning'
 import { scorePlan, suggestedPlans } from '../lib/rotation'
 import { PlaceBar, PlaceGate } from '../components/PlaceGate'
 import { FieldSetup } from '../components/FieldSetup'
-import { HorizonPicker } from '../components/HorizonPicker'
 import { PlanCard } from '../components/PlanCard'
 import { Loading } from '../components/Loading'
 import { Notice } from '../components/Notice'
@@ -13,7 +13,8 @@ const TITLES = ['rotation.planA', 'rotation.planB']
 const WHY = ['rotation.why.1', 'rotation.why.2', 'rotation.why.3', 'rotation.why.4']
 
 export function Rotation() {
-  const { t, language, place, status, error, recommendation, soil, priority, horizon } = useAppData()
+  const { t, language, place, status, error, recommendation, soil, priority } = useAppData()
+  const horizon = DEFAULT_HORIZON
   const crops = recommendation?.crops ?? []
   const suggested = suggestedPlans(crops, horizon)
   const [edits, setEdits] = useState([null, null])
@@ -66,8 +67,6 @@ export function Rotation() {
 
         {crops.length > 0 && (
           <>
-            <HorizonPicker />
-
             <h2 className="panel__title">{t('rotation.compare')}</h2>
             <p className="section__sub">{t('rotation.compareSub')}</p>
 
