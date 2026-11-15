@@ -1,0 +1,291 @@
+{
+  "version": 1,
+  "region": "The Gambia",
+  "note": "One catalogue for the whole app. Only crops with agronomy here are scored; the rest are shown for recognition only. Local names are intentionally empty until checked by a native speaker.",
+  "sources": [
+    "FAO / IITA crop water and heat summaries (agronomy constants for the seven scored crops)",
+    "FAOSTAT and Gambia Bureau of Statistics crop lists (which crops are grown)",
+    "FAO ECOCROP and Kew Plants of the World Online (scientific names, perennial habit)",
+    "Wikimedia Commons (photographs; see frontend/public/crops/CREDITS.md)"
+  ],
+  "crops": [
+    {
+      "id": "groundnut",
+      "name": "Groundnut",
+      "scientificName": "Arachis hypogaea",
+      "localNames": {},
+      "category": "annual",
+      "group": "legume",
+      "scored": true,
+      "photo": "groundnut.webp",
+      "agronomy": {
+        "waterNeedMm": 520,
+        "waterMaxMm": 900,
+        "seasonDays": 110,
+        "heatLimitC": 38,
+        "sowingMonths": [6, 7],
+        "soil": "sandy"
+      },
+      "rotation": { "family": "legume", "soils": ["sandy", "loam"], "soilDelta": 2, "cover": "medium", "root": "shallow" }
+    },
+    {
+      "id": "cowpea",
+      "name": "Cowpea",
+      "scientificName": "Vigna unguiculata",
+      "localNames": {},
+      "category": "annual",
+      "group": "legume",
+      "scored": true,
+      "photo": "cowpea.webp",
+      "agronomy": {
+        "waterNeedMm": 380,
+        "waterMaxMm": 800,
+        "seasonDays": 80,
+        "heatLimitC": 40,
+        "sowingMonths": [7, 8],
+        "soil": "sandy"
+      },
+      "rotation": { "family": "legume", "soils": ["sandy", "loam"], "soilDelta": 2, "cover": "short", "root": "shallow" }
+    },
+    {
+      "id": "millet",
+      "name": "Millet",
+      "scientificName": "Pennisetum glaucum",
+      "localNames": {},
+      "category": "annual",
+      "group": "cereal",
+      "scored": true,
+      "photo": "millet.webp",
+      "agronomy": {
+        "waterNeedMm": 350,
+        "waterMaxMm": 1000,
+        "seasonDays": 95,
+        "heatLimitC": 42,
+        "sowingMonths": [6, 7],
+        "soil": "sandy"
+      },
+      "rotation": { "family": "cereal", "soils": ["sandy", "loam"], "soilDelta": -1, "cover": "medium", "root": "deep" }
+    },
+    {
+      "id": "sorghum",
+      "name": "Sorghum",
+      "scientificName": "Sorghum bicolor",
+      "localNames": {},
+      "category": "annual",
+      "group": "cereal",
+      "scored": true,
+      "photo": "sorghum.webp",
+      "agronomy": {
+        "waterNeedMm": 480,
+        "waterMaxMm": 1000,
+        "seasonDays": 120,
+        "heatLimitC": 40,
+        "sowingMonths": [6, 7],
+        "soil": "loam"
+      },
+      "rotation": { "family": "cereal", "soils": ["sandy", "loam", "clay"], "soilDelta": -1, "cover": "long", "root": "deep" }
+    },
+    {
+      "id": "maize",
+      "name": "Maize",
+      "scientificName": "Zea mays",
+      "localNames": {},
+      "category": "annual",
+      "group": "cereal",
+      "scored": true,
+      "photo": "maize.webp",
+      "agronomy": {
+        "waterNeedMm": 600,
+        "waterMaxMm": 1000,
+        "seasonDays": 100,
+        "heatLimitC": 36,
+        "sowingMonths": [6, 7],
+        "soil": "loam"
+      },
+      "rotation": { "family": "cereal", "soils": ["loam", "clay"], "soilDelta": -2, "cover": "medium", "root": "shallow" }
+    },
+    {
+      "id": "rice",
+      "name": "Rice",
+      "scientificName": "Oryza sativa",
+      "localNames": {},
+      "category": "annual",
+      "group": "cereal",
+      "scored": true,
+      "photo": "rice.webp",
+      "agronomy": {
+        "waterNeedMm": 1100,
+        "waterMaxMm": 2000,
+        "seasonDays": 135,
+        "heatLimitC": 38,
+        "sowingMonths": [6, 7, 8],
+        "soil": "clay"
+      },
+      "rotation": { "family": "cereal", "soils": ["clay"], "soilDelta": -1, "cover": "long", "root": "shallow" }
+    },
+    {
+      "id": "cassava",
+      "name": "Cassava",
+      "scientificName": "Manihot esculenta",
+      "localNames": {},
+      "category": "annual",
+      "group": "root",
+      "scored": true,
+      "photo": "cassava.webp",
+      "agronomy": {
+        "waterNeedMm": 800,
+        "waterMaxMm": 1800,
+        "seasonDays": 300,
+        "waterWindowDays": 150,
+        "heatLimitC": 40,
+        "sowingMonths": [6, 7, 8],
+        "soil": "loam"
+      },
+      "rotation": { "family": "root", "soils": ["sandy", "loam"], "soilDelta": -2, "cover": "long", "root": "deep" }
+    },
+    {
+      "id": "sesame",
+      "name": "Sesame",
+      "scientificName": "Sesamum indicum",
+      "localNames": {},
+      "category": "annual",
+      "group": "oilseed",
+      "scored": false,
+      "photo": "sesame.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "okra",
+      "name": "Okra",
+      "scientificName": "Abelmoschus esculentus",
+      "localNames": {},
+      "category": "annual",
+      "group": "vegetable",
+      "scored": false,
+      "photo": "okra.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "sweet_potato",
+      "name": "Sweet potato",
+      "scientificName": "Ipomoea batatas",
+      "localNames": {},
+      "category": "annual",
+      "group": "root",
+      "scored": false,
+      "photo": "sweet_potato.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "watermelon",
+      "name": "Watermelon",
+      "scientificName": "Citrullus lanatus",
+      "localNames": {},
+      "category": "annual",
+      "group": "vegetable",
+      "scored": false,
+      "photo": "watermelon.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "fonio",
+      "name": "Fonio",
+      "scientificName": "Digitaria exilis",
+      "localNames": {},
+      "category": "annual",
+      "group": "cereal",
+      "scored": false,
+      "photo": "fonio.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "bissap",
+      "name": "Bissap (roselle)",
+      "scientificName": "Hibiscus sabdariffa",
+      "localNames": {},
+      "category": "annual",
+      "group": "vegetable",
+      "scored": false,
+      "photo": "bissap.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "mango",
+      "name": "Mango",
+      "scientificName": "Mangifera indica",
+      "localNames": {},
+      "category": "orchard",
+      "group": "fruit",
+      "scored": false,
+      "photo": "mango.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "cashew",
+      "name": "Cashew",
+      "scientificName": "Anacardium occidentale",
+      "localNames": {},
+      "category": "orchard",
+      "group": "fruit",
+      "scored": false,
+      "photo": "cashew.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "banana",
+      "name": "Banana",
+      "scientificName": "Musa acuminata",
+      "localNames": {},
+      "category": "orchard",
+      "group": "fruit",
+      "scored": false,
+      "photo": "banana.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "papaya",
+      "name": "Papaya",
+      "scientificName": "Carica papaya",
+      "localNames": {},
+      "category": "orchard",
+      "group": "fruit",
+      "scored": false,
+      "photo": "papaya.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "pineapple",
+      "name": "Pineapple",
+      "scientificName": "Ananas comosus",
+      "localNames": {},
+      "category": "orchard",
+      "group": "fruit",
+      "scored": false,
+      "photo": "pineapple.webp",
+      "agronomy": null,
+      "rotation": null
+    },
+    {
+      "id": "citrus",
+      "name": "Orange",
+      "scientificName": "Citrus sinensis",
+      "localNames": {},
+      "category": "orchard",
+      "group": "fruit",
+      "scored": false,
+      "photo": "citrus.webp",
+      "agronomy": null,
+      "rotation": null
+    }
+  ]
+}

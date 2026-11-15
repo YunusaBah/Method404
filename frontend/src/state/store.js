@@ -1,34 +1,21 @@
-import { useSyncExternalStore } from 'react'
+// Small external store shared by the whole page. What survives a reload: the
+// chosen language, the last field, the ground the farmer described, what they
+// care about most, and the answer we cached for that field.
+
 import { loadValue, saveValue } from '../persistence/db'
+import { clampHorizon, DEFAULT_HORIZON } from '../lib/planning'
 
-/** @typedef {'en' | 'mnk' | 'wo' | 'ff'} Lang */
+const STORAGE_KEY = 'farmshift.v3'
 
-const STORAGE_KEY = 'farmshift.state.v2'
-
-const initialState = {
-  hydrated: false,
-  language: 'en',
-  profile: null,
-  scenario: { dTempC: 0, dRainPct: 0 },
-  pins: {},
-}
-
-let state = initialState
 const listeners = new Set()
 
-export function getState() {
-  return state
-}
-
-function subscribe(listener) {
-  listeners.add(listener)
-  return () => {
-    listeners.delete(listener)
-  }
-}
-
-export function useAppState() {
-  return useSyncExternalStore(subscribe, getState, getState)
+let state = {
+  hydrated: false,
+  language: 'en',
+  place: null,
+  soil: null,
+  priority: 'yield',
+  horizon: DEFAULT_HORIZON,
 }
 
 function emit() {
@@ -36,85 +23,75 @@ function emit() {
 }
 
 function persist() {
-  const snapshot = {
+  void saveValue(STORAGE_KEY, {
     language: state.language,
-    profile: state.profile,
-    scenario: state.scenario,
-    pins: state.pins,
-  }
-  void saveValue(STORAGE_KEY, snapshot)
+    place: state.place,
+    soil: state.soil,
+    priority: state.priority,
+    horizon: state.horizon,
+  })
 }
 
-function update(patch) {
-  state = { ...state, ...patch }
-  emit()
-  persist()
+export function subscribe(listener) {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
+export function getSnapshot() {
+  return state
 }
 
 export async function hydrate() {
   const saved = await loadValue(STORAGE_KEY)
-  if (saved && typeof saved === 'object' && saved.language) {
-    state = {
-      ...state,
-      language: saved.language,
-      profile: saved.profile ?? null,
-      scenario: saved.scenario ?? initialState.scenario,
-      pins: saved.pins ?? {},
-      hydrated: true,
-    }
-  } else {
-    state = { ...state, hydrated: true }
+  state = {
+    hydrated: true,
+    language: saved?.language ?? 'en',
+    place: saved?.place ?? null,
+    soil: saved?.soil ?? null,
+    priority: saved?.priority ?? 'yield',
+    horizon: clampHorizon(saved?.horizon ?? DEFAULT_HORIZON),
   }
   emit()
+  return state
 }
 
 export function setLanguage(language) {
-  update({ language })
+  if (language === state.language) return
+  state = { ...state, language }
+  emit()
+  persist()
 }
 
-export function setLocation(districtId, cellId, defaultSoil) {
-  const profile = {
-    cellId,
-    districtId,
-    soil: defaultSoil ?? 'unknown',
-    soilIsDefault: defaultSoil !== null,
-    water: 'rainfed',
-    priorities: [],
-    history: [],
-    seasons: 3,
-  }
-  update({ profile, pins: {} })
+export function setPlace(place) {
+  state = { ...state, place }
+  emit()
+  persist()
 }
 
-export function setSoil(soil, soilIsDefault = false) {
-  if (!state.profile) return
-  update({ profile: { ...state.profile, soil, soilIsDefault }, pins: {} })
+export function setSoil(soil) {
+  if (soil === state.soil) return
+  state = { ...state, soil }
+  emit()
+  persist()
 }
 
-export function setWater(water) {
-  if (!state.profile) return
-  update({ profile: { ...state.profile, water }, pins: {} })
+export function setPriority(priority) {
+  if (priority === state.priority) return
+  state = { ...state, priority }
+  emit()
+  persist()
 }
 
-export function setPriorities(priorities) {
-  if (!state.profile) return
-  update({ profile: { ...state.profile, priorities } })
+export function setHorizon(horizon) {
+  const next = clampHorizon(horizon)
+  if (next === state.horizon) return
+  state = { ...state, horizon: next }
+  emit()
+  persist()
 }
 
-export function setScenario(scenario) {
-  update({ scenario })
-}
-
-export function resetScenario() {
-  update({ scenario: { dTempC: 0, dRainPct: 0 } })
-}
-
-export function setPin(slot, crop) {
-  update({ pins: { ...state.pins, [slot]: crop } })
-}
-
-export function clearPin(slot) {
-  const pins = { ...state.pins }
-  delete pins[slot]
-  update({ pins })
+export function clearPlace() {
+  state = { ...state, place: null }
+  emit()
+  persist()
 }

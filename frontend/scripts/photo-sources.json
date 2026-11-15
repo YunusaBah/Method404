@@ -1,0 +1,81 @@
+{
+  "_about": "Curated Wikimedia Commons photographs, one per crop. Chosen by eye from candidate contact sheets; never auto-picked. Re-run npm run images -- --force=id1,id2 after changing a source.",
+  "sources": {
+    "groundnut": {
+      "title": "File:Peanut Plant 20020400 8.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Peanut_Plant_20020400_8.jpg"
+    },
+    "cowpea": {
+      "title": "File:Black-eyed pea pods on plant in Hong Kong.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Black-eyed_pea_pods_on_plant_in_Hong_Kong.jpg"
+    },
+    "millet": {
+      "title": "File:Pearl millet crops with grains in the Northern part of Namibia 3.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Pearl_millet_crops_with_grains_in_the_Northern_part_of_Namibia_3.jpg"
+    },
+    "sorghum": {
+      "title": "File:Sorghum bicolor.JPG",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Sorghum_bicolor.JPG"
+    },
+    "maize": {
+      "title": "File:Corn cob near Faversham - geograph.org.uk - 8406101.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Corn_cob_near_Faversham_-_geograph.org.uk_-_8406101.jpg"
+    },
+    "rice": {
+      "title": "File:Mature Rice (India) by Augustus Binu.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Mature_Rice_(India)_by_Augustus_Binu.jpg"
+    },
+    "cassava": {
+      "title": "File:Freshly harvested cassava roots in a yellow basin.png",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Freshly_harvested_cassava_roots_in_a_yellow_basin.png"
+    },
+    "sesame": {
+      "title": "File:Sesamum indicum 13062014.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Sesamum_indicum_13062014.jpg"
+    },
+    "okra": {
+      "title": "File:Hong Kong Okra Aug 25 2012.JPG",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Hong_Kong_Okra_Aug_25_2012.JPG"
+    },
+    "sweet_potato": {
+      "title": "File:Ipomoea batatas 006.JPG",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Ipomoea_batatas_006.JPG"
+    },
+    "watermelon": {
+      "title": "File:البطيخ الأحمر.JPG",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:%D8%A7%D9%84%D8%A8%D8%B7%D9%8A%D8%AE_%D8%A7%D9%84%D8%A3%D8%AD%D9%85%D8%B1.JPG"
+    },
+    "fonio": {
+      "title": "File:Fonio panicles maturing in Natitingou, northern Benin.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Fonio_panicles_maturing_in_Natitingou,_northern_Benin.jpg"
+    },
+    "bissap": {
+      "title": "File:Roselle 2, Hibiscus sabdariffa, 2014.JPG",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Roselle_2,_Hibiscus_sabdariffa,_2014.JPG"
+    },
+    "mango": {
+      "title": "File:Mango and cross sections.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Mango_and_cross_sections.jpg"
+    },
+    "cashew": {
+      "title": "File:Cashew nut tree Anacardium occidentale with unripe cashew apples and nuts at Goa DSCF0333 (11).JPG",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Cashew_nut_tree_Anacardium_occidentale_with_unripe_cashew_apples_and_nuts_at_Goa_DSCF0333_(11).JPG"
+    },
+    "banana": {
+      "title": "File:Starr-130221-1621-Musa acuminata-fruit Williams-Waihee-Maui (25087626822).jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Starr-130221-1621-Musa_acuminata-fruit_Williams-Waihee-Maui_(25087626822).jpg"
+    },
+    "papaya": {
+      "title": "File:Carica papaya 14 7 2012.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Carica_papaya_14_7_2012.jpg"
+    },
+    "pineapple": {
+      "title": "File:കൈതച്ചക്ക.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:%E0%B4%95%E0%B5%88%E0%B4%A4%E0%B4%9A%E0%B5%8D%E0%B4%9A%E0%B4%95%E0%B5%8D%E0%B4%95.jpg"
+    },
+    "citrus": {
+      "title": "File:Local Orange Variety of Kozan - Kozan Yerli Portakal 04.jpg",
+      "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Local_Orange_Variety_of_Kozan_-_Kozan_Yerli_Portakal_04.jpg"
+    }
+  }
+}

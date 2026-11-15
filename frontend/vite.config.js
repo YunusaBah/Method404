@@ -10,11 +10,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'FarmShift',
+        name: 'FarmShift — crops that fit your field',
         short_name: 'FarmShift',
-        description: 'Crop rotation plans for smallholder farmers in The Gambia.',
-        theme_color: '#FFFFFF',
-        background_color: '#FFFFFF',
+        description: 'NASA rainfall and temperature, matched to the crops that will grow in your field.',
+        theme_color: '#FBFCFA',
+        background_color: '#FBFCFA',
         display: 'standalone',
         start_url: './',
         icons: [
@@ -31,12 +31,49 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: 'index.html',
+        // Nineteen crops, two sizes each, are real high-resolution photographs.
+        // They are cached the first time a farmer sees them rather than
+        // blocking the install on ~5 MB.
+        runtimeCaching: [
+          {
+            urlPattern: /\/crops\/[a-z_-]+\.webp$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'crop-photos',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 60 },
+            },
+          },
+          {
+            urlPattern: /\/hero\.jpg$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'hero-photo',
+              expiration: { maxEntries: 2, maxAgeSeconds: 60 * 60 * 24 * 60 },
+            },
+          },
+        ],
         // The data explorer is a separate page; never answer it with the app shell.
         navigateFallbackDenylist: [/^\/data(\.html)?$/],
       },
       devOptions: { enabled: false },
     }),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:5000',
+        changeOrigin: true,
+      },
+    },
+  },
+  preview: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     target: 'es2020',
     rollupOptions: {

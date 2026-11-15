@@ -1,79 +1,53 @@
-import { translate } from '../i18n'
+// Reads recommendations aloud. Uses the device voice: no audio files to
+// download, and it works offline once the page is installed.
 
-const clipCache = new Map()
-let cachedVoices = []
 let voicesPromise = null
+let voices = []
 
 function loadVoices() {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
     return Promise.resolve([])
   }
-  if (cachedVoices.length > 0) return Promise.resolve(cachedVoices)
+  if (voices.length > 0) return Promise.resolve(voices)
   if (voicesPromise) return voicesPromise
 
   voicesPromise = new Promise((resolve) => {
     const read = () => {
-      cachedVoices = window.speechSynthesis.getVoices()
-      if (cachedVoices.length > 0) resolve(cachedVoices)
+      voices = window.speechSynthesis.getVoices()
+      if (voices.length > 0) resolve(voices)
     }
     read()
     window.speechSynthesis.addEventListener('voiceschanged', read, { once: true })
-    window.setTimeout(() => resolve(cachedVoices), 600)
+    window.setTimeout(() => resolve(voices), 600)
   })
 
   return voicesPromise
 }
 
-export async function audioAvailable(lang) {
-  const voices = await loadVoices()
-  return voices.some((voice) => voice.lang.toLowerCase().startsWith(lang))
+/** True when the device has a voice for this language. */
+export async function canSpeak(lang) {
+  const available = await loadVoices()
+  const base = lang.split('-')[0].toLowerCase()
+  return available.some((voice) => voice.lang.toLowerCase().startsWith(base))
 }
 
-async function clipExists(url) {
-  const cached = clipCache.get(url)
-  if (cached !== undefined) return cached
-  try {
-    const response = await fetch(url, { method: 'HEAD' })
-    clipCache.set(url, response.ok)
-    return response.ok
-  } catch {
-    clipCache.set(url, false)
-    return false
+export function stopSpeaking() {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
   }
 }
 
-function playClip(url) {
-  return new Promise((resolve) => {
-    const audio = new Audio(url)
-    audio.onended = () => resolve(true)
-    audio.onerror = () => resolve(false)
-    void audio.play().catch(() => resolve(false))
-  })
-}
+export function speakText(text, lang) {
+  if (typeof window === 'undefined' || !text) return Promise.resolve()
+  if (!('speechSynthesis' in window)) return Promise.resolve()
 
-function speakText(text, lang) {
   return new Promise((resolve) => {
+    stopSpeaking()
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = lang
+    utterance.rate = 0.95
     utterance.onend = () => resolve()
     utterance.onerror = () => resolve()
     window.speechSynthesis.speak(utterance)
   })
-}
-
-export async function speak(keys, lang) {
-  if (typeof window === 'undefined' || keys.length === 0) return
-  const canSpeak = await audioAvailable(lang)
-  if (!canSpeak) return
-
-  window.speechSynthesis.cancel()
-
-  for (const key of keys) {
-    const url = `/audio/${lang}/${key}.mp3`
-    if (await clipExists(url)) {
-      const played = await playClip(url)
-      if (played) continue
-    }
-    await speakText(translate(lang, key), lang)
-  }
 }
