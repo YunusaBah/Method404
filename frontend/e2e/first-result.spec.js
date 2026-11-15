@@ -151,10 +151,7 @@ test('the rotation planner compares two editable plans', async ({ page }) => {
 
   // Two plans, two years each by default.
   await expect(page.locator('.season__select')).toHaveCount(4)
-
-  // The horizon drives the rotation length: three years means three per plan.
-  await page.getByRole('button', { name: '3 years' }).click()
-  await expect(page.locator('.season__select')).toHaveCount(6)
+  await expect(page.getByRole('button', { name: '3 years' })).toHaveCount(0)
 
   const planA = page.locator('.plan').first()
   const total = planA.locator('.plan__total b')
@@ -179,22 +176,23 @@ test('the planting calendar names crops for each month', async ({ page }) => {
   const january = page.getByRole('listitem').filter({ hasText: 'January' }).first()
   await expect(january.getByText('Too dry or too hot for the crops we know.')).toBeVisible()
 
-  // A longer horizon adds the year after next as a compact summary.
-  await page.getByRole('button', { name: '3 years' }).click()
-  await expect(page.getByRole('heading', { name: 'In 2 years' })).toBeVisible()
+  await expect(page.locator('.years .year')).toHaveCount(2)
+  await expect(page.getByRole('button', { name: '3 years' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'In 2 years' })).toHaveCount(0)
 })
 
 test('the language menu switches language and remembers it', async ({ page }) => {
   await page.goto('/')
 
-  await page.getByRole('button', { name: 'Language' }).click()
+  const languageButton = page.locator('.lang__button')
+  await languageButton.click()
   await expect(page.getByRole('option')).toHaveCount(4)
 
   await page.getByRole('option', { name: /Wolof/ }).click()
-  await expect(page.getByRole('button', { name: 'Language' })).toContainText('Wolof')
+  await expect(languageButton).toContainText('Wolof')
 
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Language' })).toContainText('Wolof')
+  await expect(languageButton).toContainText('Wolof')
 })
 
 test('a suggestion is offered when the typed name is close', async ({ page }) => {
