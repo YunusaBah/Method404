@@ -61,9 +61,9 @@ function SeasonChart({ season }) {
         <line className="rain-chart-axis" x1="0" x2={width} y1={height - 0.5} y2={height - 0.5} />
       </svg>
       <figcaption className="season-legend">
-        <span><i className="legend-swatch legend-swatch--bar" /> Average rainfall (mm/month)</span>
-        <span><i className="legend-swatch legend-swatch--line" /> Half of potential evapotranspiration</span>
-        <span><i className="legend-swatch legend-swatch--band" /> Rainy growing season</span>
+        <span><i className="legend-swatch legend-swatch--bar" /> Usual rain each month</span>
+        <span><i className="legend-swatch legend-swatch--line" /> Half of estimated water loss</span>
+        <span><i className="legend-swatch legend-swatch--band" /> Rainy season</span>
       </figcaption>
     </figure>
   )
@@ -74,10 +74,10 @@ function GrowingSeason({ season }) {
     <section className="panel data-panel">
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">LONG-TERM CLIMATE · NASA POWER</span>
+          <span className="eyebrow">LONG-TERM WEATHER</span>
           <h2>Your growing season</h2>
         </div>
-        <span className="live-label">NASA data</span>
+        <span className="live-label">NASA estimate</span>
       </div>
       <div className="stat-grid">
         <div className="stat-tile">
@@ -86,12 +86,12 @@ function GrowingSeason({ season }) {
           <span className="stat-note">{season.rainySeasonDays} days on average</span>
         </div>
         <div className="stat-tile">
-          <span className="stat-label">Growing period</span>
+          <span className="stat-label">Growing time</span>
           <strong>{season.totalDays}<small> days</small></strong>
-          <span className="stat-note">Includes {season.storedMoistureDays} days on stored soil moisture</span>
+          <span className="stat-note">Includes days when soil may hold water after rain</span>
         </div>
         <div className="stat-tile">
-          <span className="stat-label">Rain in the season</span>
+          <span className="stat-label">Rain during this season</span>
           <strong>{formatNumber(season.seasonRainfallMm, 0)}<small> mm</small></strong>
           <span className="stat-note">{formatNumber(season.annualRainfallMm, 0)} mm a year</span>
         </div>
@@ -131,7 +131,7 @@ function Candidates({ candidates }) {
       <div className="panel-heading">
         <div>
           <span className="eyebrow">RAIN-FED UPLAND CROPS</span>
-          <h2>Which crops can enter the rotation</h2>
+          <h2>Other crops to consider</h2>
         </div>
       </div>
       <div className="table-scroll">
@@ -179,8 +179,7 @@ function RotationPlannerPage({ section, region, locationId, onLocationChange }) 
           <div className="page-kicker"><span /> FARM PLANNING <span className="kicker-divider">/</span> THE GAMBIA</div>
           <h1>{section.label}</h1>
           <p>
-            A season-by-season plan for an upland field in {location ? `${location.name}, ${location.region}` : 'your area'},
-            built from NASA’s long-term climate record and FAO crop suitability.
+            A crop plan for the next few years near {location ? `${location.name}, ${location.region}` : 'you'}.
           </p>
         </div>
         <div className="page-controls">
@@ -190,7 +189,7 @@ function RotationPlannerPage({ section, region, locationId, onLocationChange }) 
 
       <div className="planner-controls panel">
         <label className="location-select">
-          <span>Plan length</span>
+          <span>How many years?</span>
           <select onChange={(event) => setYears(Number(event.target.value))} value={years}>
             {[2, 3, 4, 5].map((count) => <option key={count} value={count}>{count} years</option>)}
           </select>
@@ -203,21 +202,21 @@ function RotationPlannerPage({ section, region, locationId, onLocationChange }) 
           </select>
         </label>
         <div className="location-select">
-          <span>Dry-season irrigation</span>
+          <span>Water for dry season?</span>
           <div className="segmented segmented--flush" role="group" aria-label="Dry-season irrigation">
             {[false, true].map((value) => (
               <button aria-pressed={irrigation === value} key={String(value)} onClick={() => setIrrigation(value)} type="button">
-                {value ? 'Available' : 'None'}
+                {value ? 'Yes' : 'No'}
               </button>
             ))}
           </div>
         </div>
         <div className="location-select">
-          <span>Farming inputs</span>
+          <span>Farm inputs</span>
           <div className="segmented segmented--flush" role="group" aria-label="Farming input level">
             {['low', 'high'].map((level) => (
               <button aria-pressed={input === level} key={level} onClick={() => setInput(level)} type="button">
-                {level === 'low' ? 'Traditional' : 'Improved'}
+                {level === 'low' ? 'Few inputs' : 'More inputs'}
               </button>
             ))}
           </div>
@@ -235,8 +234,8 @@ function RotationPlannerPage({ section, region, locationId, onLocationChange }) 
               <div>
                 <h2 id="plan-title">Your {data.summary.years}-year plan</h2>
                 <p className="category-description">
-                  {data.summary.legumeSeasons} legume season{data.summary.legumeSeasons === 1 ? '' : 's'} to feed the soil
-                  · {data.summary.families.length} plant famil{data.summary.families.length === 1 ? 'y' : 'ies'}
+                  {data.summary.legumeSeasons} seasons with soil-feeding crops
+                  · {data.summary.families.length} crop famil{data.summary.families.length === 1 ? 'y' : 'ies'}
                   {data.request.previous ? ` · following ${data.request.previous}` : ''}
                 </p>
               </div>
@@ -257,14 +256,13 @@ function RotationPlannerPage({ section, region, locationId, onLocationChange }) 
           <Candidates candidates={data.candidates} />
 
           <section className="panel data-panel">
-            <span className="eyebrow">HOW THIS WORKS</span>
-            <ul className="note-list">
-              {data.notes.map((note) => <li key={note}>{note}</li>)}
-              <li>
-                Data used:{' '}
-                {data.sources.map((source) => `${source.name} (${source.status === 'ok' ? 'ok' : 'unavailable'})`).join(', ')}.
-              </li>
-            </ul>
+            <details className="card-notes">
+              <summary>About this plan</summary>
+              <ul>
+                {data.notes.map((note) => <li key={note}>{note}</li>)}
+                <li>Uses long-term NASA weather estimates and crop information. Local field conditions may differ.</li>
+              </ul>
+            </details>
           </section>
         </>
       )}

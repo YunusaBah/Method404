@@ -28,7 +28,34 @@ test("GET /api/gambia returns the region and its reference locations", async () 
     assert.equal(response.status, 200);
     assert.equal(body.country, "The Gambia");
     assert.equal(body.defaultLocation, "janjanbureh");
-    assert.equal(body.locations.length, 7);
+    assert.ok(body.locations.length >= 15);
+    assert.ok(body.locations.some((location) => location.id === "farafenni"));
+});
+
+test("GET /api/gambia/crops lists the full GAEZ catalogue and marks reviewed recommendations", async () => {
+    const response = await fetch(`${baseUrl}/api/gambia/crops`);
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.ok(body.crops.length >= 40);
+    assert.equal(body.crops.find((crop) => crop.crop === "Pearl millet").recommended, true);
+    assert.equal(body.crops.find((crop) => crop.crop === "Banana").recommended, false);
+    assert.equal(body.featuredCrops.length, 14);
+    assert.equal(body.featuredCrops.find((crop) => crop.id === "citrus").crop, "Orange");
+    assert.equal(body.featuredCrops.find((crop) => crop.id === "rice").predictionAvailable, true);
+    assert.ok(body.featuredCrops.every((crop) => crop.predictionAvailable));
+    assert.equal(body.featuredCrops.find((crop) => crop.id === "sesame").profileConfidence, "estimated");
+    assert.equal(body.featuredCrops.find((crop) => crop.id === "mango").predictionType, "establishment");
+});
+
+test("crop prediction route validates crop ids and locations", async () => {
+    const unknown = await fetch(`${baseUrl}/api/gambia/crops/not-a-featured-crop/prediction`);
+    assert.equal(unknown.status, 404);
+    assert.equal((await unknown.json()).error.code, "UNKNOWN_CROP");
+
+    const outside = await fetch(`${baseUrl}/api/gambia/crops/rice/prediction?latitude=14.69&longitude=-17.44`);
+    assert.equal(outside.status, 400);
+    assert.equal((await outside.json()).error.code, "LOCATION_OUTSIDE_GAMBIA");
 });
 
 test("GET /api/gambia/sources lists every data source", async () => {

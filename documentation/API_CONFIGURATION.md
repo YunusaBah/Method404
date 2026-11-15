@@ -22,6 +22,8 @@ endpoint paths through its shared Axios client.
 | `GET /api/farms/:farmId/climate-observations` | Retrieves climate history; accepts optional `start`, `end` (`YYYY-MM-DD`), and `limit` query parameters. | Supabase access token |
 | `GET /api/gambia` | Lists The Gambia's bounds and reference locations. | None |
 | `GET /api/gambia/sources` | Lists every connected data source. | None |
+| `GET /api/gambia/crops` | Lists FAO GAEZ crops and featured crops, including NASA POWER prediction availability. | None |
+| `GET /api/gambia/crops/:crop/prediction` | Returns a NASA POWER climate prediction with reviewed or explicitly estimated crop-profile confidence. | None |
 | `GET /api/gambia/data/:sourceId` | Fetches one source for a location in The Gambia. | None |
 | `GET /api/gambia/summary` | Fetches every fast source for one location. | None |
 | `GET /api/gambia/recommendations` | Ranks crops for a location from suitability and current conditions. | None |
@@ -133,6 +135,32 @@ measurement at a particular field or plot. Availability, spatial resolution,
 and accuracy vary by parameter and date. The NASA request/response metadata
 and data limitations should accompany downstream use.
 
+The Gambia locations endpoint lists town-centre reference points. Source
+adapters use the selected point to request satellite or gridded data; a town
+point is not a farm boundary or a field measurement.
+
+`GET /api/gambia/crops` returns the FAO GAEZ crop catalogue and a `featuredCrops`
+list for the crops shown in the farmer interface. Each featured crop includes
+its ID, display name, `predictionAvailable` flag, prediction type, and profile
+confidence (`verified` or `estimated`). Request
+a crop's NASA POWER climate result by ID, for example:
+
+```text
+GET /api/gambia/crops/rice/prediction?location=farafenni
+GET /api/gambia/crops/papaya/prediction?latitude=13.27&longitude=-16.65
+```
+
+The route reads the last three complete years of NASA POWER daily rainfall and
+maximum-temperature data. All 14 featured crops currently return a numeric
+climate score. Rice and cassava use reviewed profiles; the other profiles are
+clearly marked `estimated` and are preliminary screening assumptions that need
+validation against Gambian varieties and local agricultural guidance. Annual
+crops are screened by planting season; orchard crops receive an establishment
+climate estimate based on annual rainfall and mean maximum temperature. The
+score is not a yield forecast or a field measurement. NASA POWER is a gridded
+climate product; soil, irrigation, variety, pests and farm management are not
+represented, and orchard establishment may require dry-season irrigation.
+
 For authenticated farm records, `POST
 /api/farms/:farmId/climate-observations/nasa` uses the stored farm coordinates,
 fetches NASA data, and upserts non-missing values into `climate_observations`.
@@ -220,7 +248,7 @@ explain each source's resolution and limits.
 
 | `sourceId` | Source | Returns | Options |
 | --- | --- | --- | --- |
-| `power` | NASA POWER | Daily temperature, rainfall, humidity, solar radiation, soil wetness | `start`, `end` (default: 30 days ending 7 days ago), `parameters` |
+| `power` | NASA POWER | Daily temperature, rainfall, humidity, solar radiation; optionally soil wetness (`GWETTOP`, `GWETROOT`, index 0–1) | `start`, `end` (default: 30 days ending 7 days ago), `parameters` |
 | `era5` | ERA5 reanalysis, via Open-Meteo | Daily temperature, rainfall, humidity, ET₀, soil moisture | `start`, `end` (same default) |
 | `modis` | MODIS MOD13Q1, via NASA ORNL DAAC | 16-day NDVI at 250 m | `composites` (1–10, default 6), `start`, `end` |
 | `viirs` | VIIRS VNP13A1, via NASA ORNL DAAC | 16-day NDVI at 500 m (ORNL record ends May 2024) | as `modis` |
@@ -256,9 +284,18 @@ the "NASA GESDISC DATA ARCHIVE" application in the Earthdata Login profile;
 otherwise these sources return `502 <SOURCE>_UNAUTHORIZED`. `ecostress` and
 `grace-fo` remain catalogue sources.
 
+The Climate overview's soil-moisture panel includes NASA POWER `GWETTOP` and
+`GWETROOT` wetness indices (0–1), NASA SMAP morning/evening surface values
+(top 5 cm) when `EARTHDATA_TOKEN` is set, and ERA5 model estimates for 0–7 cm
+and 7–28 cm. SMAP and ERA5 volumetric water content is displayed as percent;
+NASA POWER's index is kept on its separate 0–1 scale. These are not
+field-sensor measurements or a direct measure of water available to a
+particular crop. Without an Earthdata token, SMAP files can still be listed,
+and NASA POWER/ERA5 estimates remain available.
+
 **Crop recommendations.** `GET /api/gambia/recommendations?location=basse&input=low`
 (`input`: `low` or `high`) combines FAO GAEZ suitability (required) with GPM
-or NASA POWER rainfall, SMAP or NASA POWER soil moisture, and an ERA5 water
+or NASA POWER rainfall, SMAP or ERA5 topsoil moisture, and an ERA5 water
 balance. Each crop is placed in one group: `plant-now` (in its sowing window
 and the rains have started, using the Sivakumar 1988 onset rule),
 `plant-now-irrigated` (dry-season vegetables), `wait-for-rains`,

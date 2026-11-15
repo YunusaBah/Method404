@@ -252,8 +252,9 @@ of the calendar and rotation logic when it happens.
 4. **Crop constants are coarse.** Water need, season length and heat limit come
    from FAO/IITA summaries in `backend/src/data/crops.json`; the extra rotation
    traits sit beside them in the same catalogue. Only the seven crops with
-   validated constants are scored. This is guidance, not a prescription — the
-   footer and the rotation screen both say so.
+   reviewed constants enter the core recommendation and rotation models.
+   Separate estimated climate profiles are available for the other featured
+   crops and are not validated planting advice.
 5. **Photographs are real, and credited.** The 19 crop photos are curated
    Wikimedia Commons files, converted at build time to two WebP sizes by
    `scripts/fetch-crop-images.mjs`. Several are CC BY-SA, so the author, licence

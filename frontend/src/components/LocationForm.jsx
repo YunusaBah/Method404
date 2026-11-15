@@ -83,8 +83,11 @@ export function LocationForm({ onPlace }) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLocating(false)
-        const { lat, lon } = position.coords
+        const { latitude: lat, longitude: lon } = position.coords
         const { district } = nearestDistrict(lat, lon)
+        setError(null)
+        setSuggestions([])
+        setQuery(district.name)
         onPlace({ id: district.id, name: district.name, lat, lon })
       },
       () => {

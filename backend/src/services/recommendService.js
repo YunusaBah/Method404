@@ -1,5 +1,5 @@
 const { ApiError } = require("../middleware/apiError");
-const { CROPS } = require("../data/crops");
+const { CROPS, PREDICTION_CROPS } = require("../data/crops");
 const { nasaPowerService } = require("./nasaPowerService");
 const { DAY_MS, climatologyWindow, isValue, toKey, validatePoint } = require("./climate");
 
@@ -175,6 +175,46 @@ function scoreCrop(crop, climate, rainByDay) {
     };
 }
 
+function scoreEstablishmentCrop(crop, climate) {
+    const annualRainMm = climate.reduce((total, month) => total + month.rainMm, 0);
+    const meanMaxTemperatureC = climate.reduce((total, month) => total + month.tMaxC, 0) / climate.length;
+    const rainFit = annualRainMm < crop.annualRainMinMm
+        ? annualRainMm / crop.annualRainMinMm
+        : annualRainMm > crop.annualRainMaxMm
+            ? crop.annualRainMaxMm / annualRainMm
+            : 1;
+    const heatFit = meanMaxTemperatureC <= crop.heatLimitC
+        ? 1
+        : Math.max(0, 1 - (meanMaxTemperatureC - crop.heatLimitC) / 10);
+    const score = Math.round(100 * (rainFit * 0.7 + heatFit * 0.3));
+    const limiting = annualRainMm < crop.annualRainMinMm
+        ? "too_dry"
+        : annualRainMm > crop.annualRainMaxMm
+            ? "too_wet"
+            : meanMaxTemperatureC > crop.heatLimitC
+                ? "too_hot"
+                : null;
+
+    return {
+        id: crop.id,
+        name: crop.name,
+        score,
+        annualRainMm,
+        meanMaxTemperatureC: Number(meanMaxTemperatureC.toFixed(1)),
+        limiting
+    };
+}
+
+function climateDiagnostics(climate) {
+    const annualRainMm = climate.reduce((total, month) => total + month.rainMm, 0);
+    const meanMaxTemperatureC = climate.reduce((total, month) => total + month.tMaxC, 0) / climate.length;
+    return {
+        annualRainMm,
+        meanMaxTemperatureC: Number(meanMaxTemperatureC.toFixed(1)),
+        months: climate.map(({ month, rainMm, rainDays, tMaxC }) => ({ month, rainMm, rainDays, tMaxC }))
+    };
+}
+
 function createRecommendService({
     powerService = nasaPowerService,
     now = () => Date.now()
@@ -220,7 +260,50 @@ function createRecommendService({
         };
     }
 
-    return { getRecommendation };
+    async function getCropPrediction(cropId, query) {
+        const crop = PREDICTION_CROPS.get(cropId);
+        const point = validatePoint(query);
+        const window = climatologyWindow(now());
+        let payload;
+        try {
+            payload = await powerService.getDailyPointData({
+                latitude: point.latitude,
+                longitude: point.longitude,
+                start: window.start,
+                end: window.end,
+                parameters: PARAMETERS.join(",")
+            });
+        } catch (error) {
+            if (error instanceof ApiError) throw error;
+            throw new ApiError(502, "CLIMATE_UNAVAILABLE", "Climate data could not be read.");
+        }
+
+        const climate = monthlyClimatology(payload);
+        if (climate.every((month) => month.tMaxC === 0)) {
+            throw new ApiError(502, "CLIMATE_EMPTY", "NASA POWER returned no usable values for this point.");
+        }
+
+        const rainByDay = payload?.properties?.parameter?.PRECTOTCORR ?? {};
+        const prediction = crop
+            ? crop.type === "establishment"
+                ? scoreEstablishmentCrop(crop, climate)
+                : scoreCrop({ ...crop.agronomy, id: crop.id, name: crop.name }, climate, rainByDay)
+            : null;
+        return {
+            location: {
+                latitude: point.latitude,
+                longitude: point.longitude,
+                district: typeof query.district === "string" ? query.district : null
+            },
+            source: "NASA POWER",
+            period: { start: window.start, end: window.end },
+            climate: climateDiagnostics(climate),
+            profile: crop ? { type: crop.type, confidence: crop.confidence, basis: crop.basis } : null,
+            prediction
+        };
+    }
+
+    return { getRecommendation, getCropPrediction };
 }
 
 const recommendService = createRecommendService();
@@ -229,6 +312,9 @@ module.exports = {
     createRecommendService,
     recommendService,
     monthlyClimatology,
+    climateDiagnostics,
+    scoreCrop,
+    scoreEstablishmentCrop,
     evaluateMonth,
     windowMonths,
     climatologyWindow,

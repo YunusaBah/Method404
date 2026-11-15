@@ -14,7 +14,7 @@ const publicCredits = readFileSync(join(photoDir, 'CREDITS.md'), 'utf8')
 const photoCredits = JSON.parse(readFileSync(creditsPath, 'utf8'))
 
 describe('bundled crop catalogue', () => {
-  it('separates seven scored annual crops from browse-only and orchard crops', () => {
+  it('keeps estimated prediction profiles separate from reviewed recommendation crops', () => {
     expect(catalogue.crops).toHaveLength(19)
     expect(catalogue.crops.filter((crop) => crop.scored)).toHaveLength(7)
     expect(catalogue.crops.filter((crop) => crop.category === 'annual')).toHaveLength(13)

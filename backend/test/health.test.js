@@ -65,6 +65,8 @@ test("GET /api lists available API endpoints", async () => {
             nasaPowerDaily: "/api/nasa/power/daily",
             gambiaRegion: "/api/gambia",
             gambiaSources: "/api/gambia/sources",
+            gambiaCrops: "/api/gambia/crops",
+            gambiaCropPrediction: "/api/gambia/crops/:crop/prediction",
             gambiaSummary: "/api/gambia/summary",
             gambiaRecommendations: "/api/gambia/recommendations",
             gambiaRotation: "/api/gambia/rotation",

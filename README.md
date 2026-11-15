@@ -43,6 +43,8 @@ Copy `frontend/.env.example` to `frontend/.env` to set `VITE_API_BASE_URL`; it d
 
 The backend health check is available at `GET /api/health`. NASA POWER daily point data and summaries are available at `GET /api/nasa/power` and `GET /api/nasa/power/summary`; all 13 data sources for locations in The Gambia are available under `GET /api/gambia/data/:sourceId`. `GET /api/health/supabase` checks the hosted Supabase Data API and `profiles` table, while authenticated farm and climate endpoints use the caller's Supabase access token and database RLS. See [Supabase setup](documentation/SUPABASE_SETUP.md), [API configuration](documentation/API_CONFIGURATION.md), [data sources](documentation/DATA_SOURCES.md), and [environment setup](documentation/ENVIRONMENT_SETUP.md) for details.
 
+For a concise status of implemented features, API endpoints, configuration requirements, and known limitations, see [Working features](documentation/WORKING_FEATURES.md).
+
 ## Quality checks
 
 ```powershell

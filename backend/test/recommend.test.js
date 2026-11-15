@@ -4,6 +4,7 @@ const {
     createRecommendService,
     evaluateMonth,
     monthlyClimatology,
+    scoreEstablishmentCrop,
     validatePoint,
     windowMonths
 } = require("../src/services/recommendService");
@@ -55,6 +56,29 @@ test("heat above the crop limit makes the month poor", () => {
     const maize = { id: "maize", waterNeedMm: 600, seasonDays: 100, heatLimitC: 29 };
     assert.equal(evaluateMonth(maize, climate, 6).tooHot, true);
     assert.equal(evaluateMonth(maize, climate, 6).status, "poor");
+});
+
+test("orchard establishment estimates compare annual rain and mean monthly heat", () => {
+    const climate = monthlyClimatology(buildPayload());
+    const profile = {
+        id: "mango",
+        name: "Mango",
+        annualRainMinMm: 800,
+        annualRainMaxMm: 2000,
+        heatLimitC: 38
+    };
+
+    assert.deepEqual(scoreEstablishmentCrop(profile, climate), {
+        id: "mango",
+        name: "Mango",
+        score: 100,
+        annualRainMm: 1020,
+        meanMaxTemperatureC: 31.3,
+        limiting: null
+    });
+
+    const dryProfile = { ...profile, annualRainMinMm: 1500 };
+    assert.equal(scoreEstablishmentCrop(dryProfile, climate).limiting, "too_dry");
 });
 
 test("rejects coordinates outside the valid range", () => {

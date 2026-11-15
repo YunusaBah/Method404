@@ -43,6 +43,7 @@ when necessary and sets Vite's API base URL to that backend's `/api` path.
 | `CLIENT_URL` | `http://localhost:5173` | Primary frontend origin; must be an origin, without a path. |
 | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated exact browser origins allowed by CORS. |
 | `NASA_POWER_BASE_URL` | NASA POWER daily point endpoint | Server-side NASA POWER endpoint. Production requires HTTPS. |
+| `EARTHDATA_TOKEN` | Empty | Optional NASA Earthdata Login token for SMAP soil-moisture values and other Earthdata point-data sources. Keep it backend-only. |
 | `SUPABASE_URL` | Empty | Supabase project URL. |
 | `SUPABASE_PUBLISHABLE_KEY` | Empty | Public key used with a verified user's access token for RLS-scoped API operations. |
 | `SUPABASE_SECRET_KEY` | Empty | Backend-only secret key, used only for the Supabase health check. |
@@ -56,6 +57,9 @@ key, so PostgreSQL row-level security remains active. The secret key is used
 only by the backend health check and must never be used for ordinary user
 operations. Check connectivity with `npm run db:check --prefix backend` or
 `GET /api/health/supabase`.
+To enable NASA SMAP soil-moisture readings, create a NASA Earthdata Login,
+place its token in `backend/.env` as `EARTHDATA_TOKEN`, and restart the backend.
+Never expose this token through a frontend `VITE_` variable.
 
 ### Frontend variables
 

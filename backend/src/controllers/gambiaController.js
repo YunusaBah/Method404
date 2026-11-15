@@ -8,6 +8,18 @@ function listSources(req, res) {
     return res.status(200).json({ success: true, ...gambiaDataService.listSources() });
 }
 
+function listCrops(req, res) {
+    return res.status(200).json({ success: true, ...gambiaDataService.listCrops() });
+}
+
+async function getCropPrediction(req, res, next) {
+    try {
+        return res.status(200).json(await gambiaDataService.getCropPrediction(req.params.crop, req.query));
+    } catch (error) {
+        return next(error);
+    }
+}
+
 async function getSummary(req, res, next) {
     try {
         return res.status(200).json(await gambiaDataService.getSummary(req.query));
@@ -61,12 +73,14 @@ async function postEngineSlotOptions(req, res, next) {
 }
 
 module.exports = {
+    getCropPrediction,
     getEngineDistricts,
     getRecommendations,
     getRegion,
     getRotationPlan,
     getSourceData,
     getSummary,
+    listCrops,
     listSources,
     postEnginePlan,
     postEngineSlotOptions

@@ -108,9 +108,8 @@ function ClimatePanel({ onNavigate, locationId, region }) {
               <strong>{formatNumber(mean(rows, 'T2M'))}<small> °C</small></strong>
             </div>
             <div className="stat-tile">
-              <span className="stat-label">Root-zone soil wetness</span>
-              <strong>{formatNumber(latest(rows, 'GWETROOT'), 2)}</strong>
-              <span className="stat-note">0 is dry, 1 is saturated</span>
+              <span className="stat-label">Latest relative humidity</span>
+              <strong>{formatNumber(latest(rows, 'RH2M'))}<small> %</small></strong>
             </div>
           </div>
           <p className="card-footnote">

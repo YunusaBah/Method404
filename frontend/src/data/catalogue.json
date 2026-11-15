@@ -1,7 +1,7 @@
 {
   "version": 1,
   "region": "The Gambia",
-  "note": "One catalogue for the whole app. Only crops with agronomy here are scored; the rest are shown for recognition only. Local names are intentionally empty until checked by a native speaker.",
+  "note": "One catalogue for the whole app. Only crops with reviewed agronomy are scored in the core recommendation model; separate estimated prediction profiles are preliminary climate screens and need local validation. Local names are intentionally empty until checked by a native speaker.",
   "sources": [
     "FAO / IITA crop water and heat summaries (agronomy constants for the seven scored crops)",
     "FAOSTAT and Gambia Bureau of Statistics crop lists (which crops are grown)",
@@ -153,6 +153,11 @@
       "scored": false,
       "photo": "sesame.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "season",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "agronomy": { "waterNeedMm": 550, "waterMaxMm": 900, "seasonDays": 100, "heatLimitC": 40, "sowingMonths": [6, 7] }
+      },
       "rotation": null
     },
     {
@@ -165,6 +170,11 @@
       "scored": false,
       "photo": "okra.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "season",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "agronomy": { "waterNeedMm": 600, "waterMaxMm": 1100, "seasonDays": 100, "heatLimitC": 38, "sowingMonths": [6, 7, 8] }
+      },
       "rotation": null
     },
     {
@@ -177,6 +187,11 @@
       "scored": false,
       "photo": "sweet_potato.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "season",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "agronomy": { "waterNeedMm": 600, "waterMaxMm": 1100, "seasonDays": 125, "heatLimitC": 38, "sowingMonths": [6, 7, 8] }
+      },
       "rotation": null
     },
     {
@@ -189,6 +204,11 @@
       "scored": false,
       "photo": "watermelon.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "season",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "agronomy": { "waterNeedMm": 500, "waterMaxMm": 1000, "seasonDays": 90, "heatLimitC": 38, "sowingMonths": [6, 7, 8] }
+      },
       "rotation": null
     },
     {
@@ -201,6 +221,11 @@
       "scored": false,
       "photo": "fonio.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "season",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "agronomy": { "waterNeedMm": 400, "waterMaxMm": 850, "seasonDays": 100, "heatLimitC": 40, "sowingMonths": [6, 7] }
+      },
       "rotation": null
     },
     {
@@ -213,6 +238,11 @@
       "scored": false,
       "photo": "bissap.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "season",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "agronomy": { "waterNeedMm": 600, "waterMaxMm": 1100, "seasonDays": 150, "heatLimitC": 38, "sowingMonths": [6, 7] }
+      },
       "rotation": null
     },
     {
@@ -225,6 +255,13 @@
       "scored": false,
       "photo": "mango.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "establishment",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "annualRainMinMm": 600,
+        "annualRainMaxMm": 2200,
+        "heatLimitC": 38
+      },
       "rotation": null
     },
     {
@@ -237,6 +274,13 @@
       "scored": false,
       "photo": "cashew.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "establishment",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "annualRainMinMm": 500,
+        "annualRainMaxMm": 2000,
+        "heatLimitC": 38
+      },
       "rotation": null
     },
     {
@@ -249,6 +293,13 @@
       "scored": false,
       "photo": "banana.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "establishment",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "annualRainMinMm": 1200,
+        "annualRainMaxMm": 3000,
+        "heatLimitC": 35
+      },
       "rotation": null
     },
     {
@@ -261,6 +312,13 @@
       "scored": false,
       "photo": "papaya.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "establishment",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "annualRainMinMm": 800,
+        "annualRainMaxMm": 2500,
+        "heatLimitC": 36
+      },
       "rotation": null
     },
     {
@@ -273,6 +331,13 @@
       "scored": false,
       "photo": "pineapple.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "establishment",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "annualRainMinMm": 600,
+        "annualRainMaxMm": 2200,
+        "heatLimitC": 35
+      },
       "rotation": null
     },
     {
@@ -285,6 +350,13 @@
       "scored": false,
       "photo": "citrus.webp",
       "agronomy": null,
+      "predictionProfile": {
+        "type": "establishment",
+        "basis": "Indicative climate-screening estimates; not locally validated.",
+        "annualRainMinMm": 800,
+        "annualRainMaxMm": 2200,
+        "heatLimitC": 36
+      },
       "rotation": null
     }
   ]

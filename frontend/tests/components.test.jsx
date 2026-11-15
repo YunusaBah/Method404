@@ -1,11 +1,69 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppDataProvider } from '../src/context/AppData'
 import { CropCard } from '../src/components/CropCard'
+import { LocationForm } from '../src/components/LocationForm'
 import { MonthStrip } from '../src/components/MonthStrip'
 import { MonthCalendar } from '../src/components/MonthCalendar'
 import { LanguageMenu } from '../src/components/LanguageMenu'
 import { climate, cowpea, maize, millet } from './fixtures'
+
+const originalGeolocation = Object.getOwnPropertyDescriptor(navigator, 'geolocation')
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+  if (originalGeolocation) {
+    Object.defineProperty(navigator, 'geolocation', originalGeolocation)
+  } else {
+    delete navigator.geolocation
+  }
+})
+
+describe('LocationForm', () => {
+  it('uses the browser location after a place search fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ matches: [] }),
+      }),
+    )
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: vi.fn((success) =>
+          success({ coords: { latitude: 13.6, longitude: -14.9 } }),
+        ),
+      },
+    })
+    const onPlace = vi.fn()
+    render(
+      <AppDataProvider>
+        <LocationForm onPlace={onPlace} />
+      </AppDataProvider>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Where is your field?'), {
+      target: { value: 'unknown village' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Show my crops' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Use my location')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use my location' }))
+
+    await waitFor(() => {
+      expect(onPlace).toHaveBeenCalledWith({
+        id: 'kuntaur',
+        name: 'Kuntaur',
+        lat: 13.6,
+        lon: -14.9,
+      })
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Where is your field?')).toHaveValue('Kuntaur')
+  })
+})
 
 describe('MonthStrip', () => {
   it('draws one cell per month and names each one for screen readers', () => {

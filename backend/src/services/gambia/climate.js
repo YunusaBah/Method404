@@ -4,7 +4,7 @@ const { createNasaPowerService } = require("../nasaPowerService");
 const { resolveDateRange } = require("./dates");
 
 const POWER_DEFAULT_PARAMETERS = [
-    "T2M", "T2M_MAX", "T2M_MIN", "PRECTOTCORR", "RH2M", "ALLSKY_SFC_SW_DWN", "GWETTOP", "GWETROOT"
+    "PRECTOTCORR", "T2M", "T2M_MAX", "T2M_MIN", "RH2M", "ALLSKY_SFC_SW_DWN"
 ];
 const POWER_FILL_VALUE = -999;
 
@@ -30,7 +30,7 @@ function createPowerSource({ fetchImpl, now, powerService } = {}) {
         provider: "NASA Langley Research Center",
         category: "climate",
         access: "values",
-        measures: "Daily temperature, rainfall, humidity, solar radiation and soil wetness",
+        measures: "Daily temperature, rainfall, relative humidity and solar radiation, with optional surface and root-zone soil-wetness estimates",
         link: "https://power.larc.nasa.gov/",
         async fetch({ location, query }) {
             const range = resolveDateRange(query, { now, defaultDays: 30, lagDays: 7, maxDays: 366 });

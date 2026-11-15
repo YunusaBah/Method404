@@ -6,7 +6,15 @@ const { buildRotationPlan } = require("./gambia/rotation");
 const engine = require("./gambia/engine");
 const { createCache } = require("./external/http");
 const { createNasaPowerService } = require("./nasaPowerService");
-const { createGaezSource } = require("./gambia/crops");
+const { PREDICTION_CROPS } = require("../data/crops");
+const { createRecommendService } = require("./recommendService");
+const {
+    FEATURED_CROP_BY_ID,
+    FEATURED_CROPS,
+    GAEZ_CROP_CATALOG,
+    GAMBIA_CROPS,
+    createGaezSource
+} = require("./gambia/crops");
 const { createEarthdataSource } = require("./gambia/earthdata");
 const { createImagerySource } = require("./gambia/imagery");
 const { createSrtmSource } = require("./gambia/terrain");
@@ -46,10 +54,11 @@ function createGambiaDataService(deps = {}) {
         createEarthdataSource("grace-fo", deps)
     ];
     const byId = new Map(sources.map((source) => [source.id, source]));
+    const now = deps.now || Date.now;
     const getClimateNormals = createPowerClimatology(deps);
     const enginePower = deps.powerService || createNasaPowerService({ fetchImpl: deps.fetchImpl, now: deps.now });
+    const powerRecommendations = createRecommendService({ powerService: enginePower, now });
     const recordCache = createCache({ ttlMs: 24 * 60 * 60 * 1000, now: deps.now });
-    const now = deps.now || Date.now;
 
     function getRegion() {
         return {
@@ -62,6 +71,25 @@ function createGambiaDataService(deps = {}) {
 
     function listSources() {
         return { sources: sources.map(describe), notConnected: SOURCE_NOT_CONNECTED };
+    }
+
+    function listCrops() {
+        const recommended = new Set(GAMBIA_CROPS.map(({ crop }) => crop));
+        const predictionReady = PREDICTION_CROPS;
+        return {
+            crops: GAEZ_CROP_CATALOG.map(({ crop }) => ({
+                crop,
+                recommended: recommended.has(crop)
+            })),
+            featuredCrops: FEATURED_CROPS.map(({ id, crop, gaezCrops }) => ({
+                id,
+                crop,
+                suitabilityAvailable: gaezCrops.length > 0,
+                predictionAvailable: predictionReady.has(id),
+                predictionType: predictionReady.get(id)?.type || "season",
+                profileConfidence: predictionReady.get(id)?.confidence || null
+            }))
+        };
     }
 
     async function getSourceData(sourceId, query = {}) {
@@ -79,6 +107,44 @@ function createGambiaDataService(deps = {}) {
             location,
             retrievedAt: new Date(now()).toISOString(),
             ...result
+        };
+    }
+
+    async function getCropPrediction(cropId, query = {}) {
+        const crop = FEATURED_CROP_BY_ID.get(String(cropId).toLowerCase());
+        if (!crop) {
+            throw new ApiError(404, "UNKNOWN_CROP", "Choose a crop from the featured crop list.");
+        }
+
+        const { location: locationId, latitude, longitude } = query;
+        const location = resolveLocation({ location: locationId, latitude, longitude });
+        const result = await powerRecommendations.getCropPrediction(crop.id, {
+            lat: location.latitude,
+            lon: location.longitude,
+            district: location.name
+        });
+        const available = result.prediction !== null;
+        return {
+            success: true,
+            available,
+            mode: available
+                ? `${result.profile.type}-prediction`
+                : "climate-diagnostics",
+            crop: { id: crop.id, name: crop.crop },
+            location,
+            source: result.source,
+            period: result.period,
+            climate: result.climate,
+            profile: result.profile,
+            prediction: result.prediction,
+            notes: [
+                available
+                    ? result.profile.confidence === "verified"
+                        ? "Prediction compares NASA POWER climate data with reviewed crop requirements."
+                        : "Indicative score compares NASA POWER climate data with an estimated crop profile that has not been locally validated."
+                    : "No crop profile is available, so only NASA POWER climate diagnostics are provided.",
+                "NASA POWER is a gridded climate estimate, not a field measurement or a yield forecast. Local soil, irrigation, variety and farm management are not represented."
+            ]
         };
     }
 
@@ -174,15 +240,16 @@ function createGambiaDataService(deps = {}) {
             };
         }
 
-        // Soil moisture: SMAP measures it directly; NASA POWER's surface
-        // wetness index is the fallback.
+        // Prefer SMAP soil moisture; use ERA5 topsoil moisture when available.
         let soil = null;
         const smapLatest = smap?.data.series ? latestNumber(smap.data.series, ["soilMoistureAm", "soilMoisturePm"]) : null;
-        const powerLatest = power?.data.daily ? latestNumber(power.data.daily, ["GWETTOP"]) : null;
+        const era5Latest = era5?.data.daily
+            ? latestNumber(era5.data.daily, ["soil_moisture_0_to_7cm_mean", "soil_moisture_7_to_28cm_mean"])
+            : null;
         if (smapLatest) {
             soil = { source: byId.get("smap").name, date: smapLatest.row.date, value: Number(smapLatest.value.toFixed(3)), unit: "m³/m³" };
-        } else if (powerLatest) {
-            soil = { source: byId.get("power").name, date: powerLatest.row.date, value: powerLatest.value, unit: "wetness index (0-1)" };
+        } else if (era5Latest) {
+            soil = { source: byId.get("era5").name, date: era5Latest.row.date, value: Number(era5Latest.value.toFixed(3)), unit: "m³/m³" };
         }
 
         // Water balance from one dataset, so rainfall and demand match.
@@ -380,10 +447,12 @@ function createGambiaDataService(deps = {}) {
         engineSlotOptions,
         engineDistricts,
         getRecommendations,
+        getCropPrediction,
         getRegion,
         getRotationPlan,
         getSourceData,
         getSummary,
+        listCrops,
         listSources
     };
 }

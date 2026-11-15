@@ -1,38 +1,26 @@
 export const sections = [
   {
-    id: 'overview',
-    label: 'Overview',
-    icon: 'overview',
-    description: 'A clear starting point for your farm and seasonal planning.',
-  },
-  {
     id: 'climate',
-    label: 'Climate Insights',
+    label: 'Climate overview',
     icon: 'climate',
-    description: 'Explore climate patterns and environmental context for your area.',
+    description: 'Rain, heat, air moisture and sunlight near you.',
   },
   {
     id: 'recommendations',
-    label: 'Crop Recommendations',
+    label: 'Crop advice',
     icon: 'sprout',
-    description: 'Crop options ranked by long-term suitability and current rain and soil moisture.',
+    description: 'See which crops may grow well and when to plant.',
   },
   {
     id: 'rotation',
-    label: 'Crop Rotation Planner',
+    label: 'Crop plan',
     icon: 'rotation',
-    description: 'Season-by-season rotations built from NASA climate data and crop suitability.',
+    description: 'Plan crops for the coming seasons.',
   },
   {
     id: 'environmental-data',
-    label: 'Environmental Data',
+    label: 'Data sources',
     icon: 'data',
-    description: 'Understand the Earth observation sources behind FarmShift AI.',
-  },
-  {
-    id: 'about',
-    label: 'About the Project',
-    icon: 'about',
-    description: 'Learn about the goals and approach of the METHOD404 team.',
+    description: 'See where the weather and land information comes from.',
   },
 ]

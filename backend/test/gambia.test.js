@@ -3,8 +3,10 @@ const { test } = require("node:test");
 const { resolveLocation, isInGambia } = require("../src/config/gambia");
 const { resolveDateRange } = require("../src/services/gambia/dates");
 const { slopeFromGrid } = require("../src/services/gambia/terrain");
-const { suitabilityClass } = require("../src/services/gambia/crops");
+const { FEATURED_CROPS, GAEZ_CROP_CATALOG, suitabilityClass } = require("../src/services/gambia/crops");
 const { ease2GridCell } = require("../src/services/gambia/opendap");
+const { SUPPORTED_PARAMETERS } = require("../src/services/nasaPowerService");
+const { POWER_DEFAULT_PARAMETERS } = require("../src/services/gambia/climate");
 const { createGambiaDataService } = require("../src/services/gambiaDataService");
 
 const NOW = Date.parse("2026-11-14T12:00:00Z");
@@ -62,7 +64,19 @@ test("computes slope from an elevation window and classifies GAEZ suitability", 
     assert.equal(suitabilityClass(null), null);
 });
 
+test("pictured crops resolve only to configured GAEZ layers", () => {
+    const availableLayers = new Set(GAEZ_CROP_CATALOG.map(({ crop }) => crop));
+    assert.deepEqual(FEATURED_CROPS.map(({ id }) => id), [
+        "rice", "cassava", "sesame", "okra", "sweet_potato", "watermelon", "fonio",
+        "bissap", "mango", "cashew", "banana", "papaya", "pineapple", "citrus"
+    ]);
+    for (const crop of FEATURED_CROPS) {
+        assert.ok(crop.gaezCrops.every((name) => availableLayers.has(name)), crop.id);
+    }
+});
+
 test("returns NASA POWER data as daily rows with fill values set to null", async () => {
+    assert.deepEqual(POWER_DEFAULT_PARAMETERS, SUPPORTED_PARAMETERS);
     let powerRequest;
     const service = createGambiaDataService({
         now,
@@ -82,6 +96,7 @@ test("returns NASA POWER data as daily rows with fill values set to null", async
     assert.equal(powerRequest.latitude, "13.4549");
     assert.equal(powerRequest.start, "20261009");
     assert.equal(powerRequest.end, "20261107");
+    assert.deepEqual(powerRequest.parameters.split(","), SUPPORTED_PARAMETERS);
     assert.equal(result.location.id, "banjul");
     assert.equal(result.source.access, "values");
     assert.deepEqual(result.data.daily, [
@@ -89,6 +104,40 @@ test("returns NASA POWER data as daily rows with fill values set to null", async
         { date: "2026-11-07", T2M: null }
     ]);
     assert.equal(result.data.units.T2M, "C");
+});
+
+test("returns NASA POWER soil wetness when surface and root-zone parameters are requested", async () => {
+    let powerRequest;
+    const service = createGambiaDataService({
+        now,
+        powerService: {
+            async getDailyPointData(request) {
+                powerRequest = request;
+                return {
+                    properties: {
+                        parameter: {
+                            GWETTOP: { 20261107: 0.18 },
+                            GWETROOT: { 20261107: 0.37 }
+                        }
+                    },
+                    parameters: {
+                        GWETTOP: { units: "1", longname: "Surface soil wetness" },
+                        GWETROOT: { units: "1", longname: "Root zone soil wetness" }
+                    }
+                };
+            }
+        }
+    });
+
+    const result = await service.getSourceData("power", {
+        location: "basse",
+        parameters: "GWETTOP,GWETROOT"
+    });
+
+    assert.deepEqual(powerRequest.parameters.split(","), ["GWETTOP", "GWETROOT"]);
+    assert.deepEqual(result.data.daily, [{ date: "2026-11-07", GWETTOP: 0.18, GWETROOT: 0.37 }]);
+    assert.equal(result.data.units.GWETTOP, "1");
+    assert.equal(result.data.units.GWETROOT, "1");
 });
 
 test("maps ERA5 daily arrays into rows", async () => {
@@ -196,6 +245,83 @@ test("looks up GAEZ layers and returns crops sorted by suitability", async () =>
     // Crops with no layer are listed last with no value.
     assert.equal(result.data.crops.at(-1).suitabilityIndex, null);
     await assert.rejects(service.getSourceData("gaez", { input: "medium" }), /input must be low or high/);
+});
+
+test("looks up one selected crop from the wider GAEZ catalogue", async () => {
+    const fetchImpl = fakeFetch([
+        ["/ImageServer/query", (url) => {
+            assert.match(url.searchParams.get("where"), /sxLr_ban/);
+            assert.doesNotMatch(url.searchParams.get("where"), /sxLr_grd/);
+            return Response.json({
+                features: [{ attributes: { objectid: 41, name: "sxLr_ban", crop: "Banana" } }]
+            });
+        }],
+        ["/ImageServer/identify", () => Response.json({ value: "6850" })]
+    ]);
+    const service = createGambiaDataService({ now, fetchImpl });
+
+    const result = await service.getSourceData("gaez", { location: "farafenni", crop: "Banana" });
+    assert.deepEqual(result.data.crops, [
+        { crop: "Banana", suitabilityIndex: 68.5, suitabilityClass: "Good" }
+    ]);
+    assert.equal(result.request.crop, "Banana");
+    await assert.rejects(service.getSourceData("gaez", { crop: "Unlisted crop" }), /Choose a crop/);
+});
+
+test("crop predictions use NASA POWER with verified and clearly marked estimated crop profiles", async () => {
+    const powerCalls = [];
+    const powerService = {
+        async getDailyPointData(query) {
+            powerCalls.push(query);
+            assert.deepEqual(query.parameters, "PRECTOTCORR,T2M_MAX,T2M_MIN");
+            const rain = {};
+            const tMax = {};
+            const tMin = {};
+            const monthlyRain = [0, 0, 0, 0, 0, 60, 220, 350, 300, 90, 0, 0];
+            for (let year = 2023; year <= 2025; year += 1) {
+                for (let month = 1; month <= 12; month += 1) {
+                    const key = `${year}${String(month).padStart(2, "0")}01`;
+                    rain[key] = monthlyRain[month - 1];
+                    tMax[key] = 32;
+                    tMin[key] = 22;
+                }
+            }
+            return { properties: { parameter: { PRECTOTCORR: rain, T2M_MAX: tMax, T2M_MIN: tMin } } };
+        }
+    };
+    const service = createGambiaDataService({ now, powerService });
+
+    const rice = await service.getCropPrediction("rice", { location: "farafenni" });
+    assert.equal(rice.available, true);
+    assert.equal(rice.mode, "season-prediction");
+    assert.equal(rice.source, "NASA POWER");
+    assert.equal(rice.crop.name, "Rice");
+    assert.ok(rice.prediction.score >= 0 && rice.prediction.score <= 100);
+    assert.equal(rice.profile.confidence, "verified");
+    assert.equal(rice.climate.months.length, 12);
+    assert.equal(rice.climate.annualRainMm, 1020);
+
+    const papaya = await service.getCropPrediction("papaya", { location: "farafenni" });
+    assert.equal(papaya.available, true);
+    assert.equal(papaya.mode, "establishment-prediction");
+    assert.equal(papaya.profile.confidence, "estimated");
+    assert.ok(papaya.prediction.score >= 0 && papaya.prediction.score <= 100);
+    assert.equal(papaya.climate.months.length, 12);
+    assert.match(papaya.notes[0], /estimated crop profile/);
+
+    const sesame = await service.getCropPrediction("sesame", { location: "farafenni" });
+    assert.equal(sesame.available, true);
+    assert.equal(sesame.mode, "season-prediction");
+    assert.equal(sesame.profile.confidence, "estimated");
+    assert.ok(sesame.prediction.score >= 0 && sesame.prediction.score <= 100);
+
+    for (const crop of FEATURED_CROPS.filter(({ id }) => !["rice", "papaya", "sesame"].includes(id))) {
+        const result = await service.getCropPrediction(crop.id, { location: "farafenni" });
+        assert.equal(result.available, true, crop.id);
+        assert.ok(result.prediction.score >= 0 && result.prediction.score <= 100, crop.id);
+    }
+
+    assert.equal(powerCalls.length, FEATURED_CROPS.length);
 });
 
 test("searches Sentinel-2 and Landsat scenes around the location", async () => {

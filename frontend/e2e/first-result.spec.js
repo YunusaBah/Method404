@@ -50,6 +50,35 @@ test('a farmer reaches a recommendation in three taps', async ({ page }) => {
   expect(taps).toBeLessThanOrEqual(3)
 })
 
+test('the main flow has no horizontal page overflow on phone, tablet, or desktop widths', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Banjul' }).click()
+  await expect(page.getByRole('heading', { name: 'Crops for Banjul' })).toBeVisible()
+
+  for (const width of [320, 360, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 800 })
+    const dimensions = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth,
+    }))
+    expect(dimensions.content, `page should fit in ${width}px viewport`).toBeLessThanOrEqual(dimensions.viewport)
+  }
+})
+
+test('the data explorer fits narrow, tablet, and desktop screens', async ({ page }) => {
+  await page.goto('/data.html')
+  await expect(page.locator('.main-content')).toBeVisible()
+
+  for (const width of [320, 360, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 800 })
+    const dimensions = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      content: document.documentElement.scrollWidth,
+    }))
+    expect(dimensions.content, `data explorer should fit in ${width}px viewport`).toBeLessThanOrEqual(dimensions.viewport)
+  }
+})
+
 test('the month strip says which months suit the crop', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Banjul' }).click()

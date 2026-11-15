@@ -17,7 +17,7 @@ test("the catalogue is complete and has no duplicate ids", () => {
     }
 });
 
-test("only the seven crops with validated constants can be scored", () => {
+test("only seven crops with reviewed constants enter the core recommendation model", () => {
     const scored = catalogue.crops.filter((crop) => crop.scored);
     assert.equal(scored.length, 7);
 
@@ -32,6 +32,15 @@ test("only the seven crops with validated constants can be scored", () => {
     for (const crop of catalogue.crops.filter((entry) => !entry.scored)) {
         assert.equal(crop.agronomy, null, `${crop.id} must not carry invented constants`);
         assert.equal(crop.rotation, null, `${crop.id} must not enter the rotation model`);
+        assert.ok(crop.predictionProfile, `${crop.id} should have a separately labeled climate estimate`);
+        assert.equal(crop.predictionProfile.basis.includes("not locally validated"), true, crop.id);
+        if (crop.predictionProfile.type === "season") {
+            assert.ok(crop.predictionProfile.agronomy.seasonDays > 0, crop.id);
+            assert.ok(crop.predictionProfile.agronomy.waterNeedMm > 0, crop.id);
+        } else {
+            assert.equal(crop.predictionProfile.type, "establishment", crop.id);
+            assert.ok(crop.predictionProfile.annualRainMinMm > 0, crop.id);
+        }
     }
 });
 

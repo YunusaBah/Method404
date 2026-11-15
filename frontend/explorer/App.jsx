@@ -1,15 +1,12 @@
 import { useState } from 'react'
 import ClimatePage from './components/ClimatePage.jsx'
 import CropRecommendationsPage from './components/CropRecommendationsPage.jsx'
-import DashboardOverview from './components/DashboardOverview.jsx'
 import EnvironmentalDataPage from './components/EnvironmentalDataPage.jsx'
 import RotationPlannerPage from './components/RotationPlannerPage.jsx'
 import SectionPage from './components/SectionPage.jsx'
-import Sidebar from './components/Sidebar.jsx'
 import Topbar from './components/Topbar.jsx'
 import { sections } from './components/navigationSections.js'
 import { useApiResource } from './hooks/useApiResource.js'
-import { useBackendHealth } from './hooks/useBackendHealth.js'
 import { fetchGambiaRegion, fetchGambiaSources } from './services/api.js'
 import './App.css'
 import './DataPages.css'
@@ -25,9 +22,7 @@ function readStoredLocation() {
 }
 
 function App() {
-  const [activeSection, setActiveSection] = useState('overview')
-  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false)
-  const health = useBackendHealth()
+  const [activeSection, setActiveSection] = useState('climate')
   const region = useApiResource((signal) => fetchGambiaRegion({ signal }), [])
   const sources = useApiResource((signal) => fetchGambiaSources({ signal }), [])
   const [storedLocation, setStoredLocation] = useState(readStoredLocation)
@@ -46,43 +41,32 @@ function App() {
   }
 
   const currentSection = sections.find((section) => section.id === activeSection)
-  const pageProps = { section: currentSection, region, sources, locationId, onLocationChange: changeLocation }
-
   function navigateToSection(sectionId) {
     setActiveSection(sectionId)
-    setMobileNavigationOpen(false)
+  }
+
+  const pageProps = {
+    section: currentSection,
+    region,
+    sources,
+    locationId,
+    onLocationChange: changeLocation,
+    onNavigate: navigateToSection,
   }
 
   return (
     <div className="app-shell">
-      {mobileNavigationOpen && (
-        <button
-          aria-label="Close navigation menu"
-          className="navigation-backdrop"
-          onClick={() => setMobileNavigationOpen(false)}
-          type="button"
-        />
-      )}
-      <Sidebar
-        activeSection={activeSection}
-        isMobileOpen={mobileNavigationOpen}
-        onNavigate={navigateToSection}
-      />
       <div className="main-column">
         <Topbar
-          health={health}
-          onMenuClick={() => setMobileNavigationOpen(true)}
-          section={currentSection}
+          activeSection={activeSection}
+          onNavigate={navigateToSection}
         />
         <main className="main-content" id="main-content">
-          {activeSection === 'overview' && (
-            <DashboardOverview health={health} onNavigate={navigateToSection} {...pageProps} />
-          )}
           {activeSection === 'climate' && <ClimatePage {...pageProps} />}
           {activeSection === 'environmental-data' && <EnvironmentalDataPage {...pageProps} />}
           {activeSection === 'recommendations' && <CropRecommendationsPage {...pageProps} />}
           {activeSection === 'rotation' && <RotationPlannerPage {...pageProps} />}
-          {!['overview', 'climate', 'environmental-data', 'recommendations', 'rotation'].includes(activeSection) && (
+          {!['climate', 'environmental-data', 'recommendations', 'rotation'].includes(activeSection) && (
             <SectionPage section={currentSection} />
           )}
           <footer className="page-footer">

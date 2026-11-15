@@ -12,8 +12,8 @@ const GAMBIA_BOUNDS = Object.freeze({
 // river banks and border are not rejected by rounding.
 const BOUNDS_MARGIN_DEGREES = 0.05;
 
-// Reference points, one per administrative region, using each regional
-// capital. Coordinates are approximate town centres.
+// Reference town points for satellite and gridded datasets. These coordinates
+// are town centres, not surveyed farm locations.
 const GAMBIA_LOCATIONS = Object.freeze([
     { id: "banjul", name: "Banjul", region: "Banjul", latitude: 13.4549, longitude: -16.579 },
     { id: "brikama", name: "Brikama", region: "West Coast", latitude: 13.2714, longitude: -16.6494 },
@@ -21,7 +21,18 @@ const GAMBIA_LOCATIONS = Object.freeze([
     { id: "mansa-konko", name: "Mansa Konko", region: "Lower River", latitude: 13.4433, longitude: -15.5386 },
     { id: "kuntaur", name: "Kuntaur", region: "Central River (north)", latitude: 13.6721, longitude: -14.8895 },
     { id: "janjanbureh", name: "Janjanbureh", region: "Central River", latitude: 13.5352, longitude: -14.7663 },
-    { id: "basse", name: "Basse Santa Su", region: "Upper River", latitude: 13.3098, longitude: -14.2142 }
+    { id: "basse", name: "Basse Santa Su", region: "Upper River", latitude: 13.3098, longitude: -14.2142 },
+    { id: "serrekunda", name: "Serrekunda", region: "Kanifing", latitude: 13.4388, longitude: -16.6748 },
+    { id: "bakau", name: "Bakau", region: "Kanifing", latitude: 13.4775, longitude: -16.6779 },
+    { id: "sukuta", name: "Sukuta", region: "West Coast", latitude: 13.4148, longitude: -16.7076 },
+    { id: "farafenni", name: "Farafenni", region: "North Bank", latitude: 13.5721, longitude: -15.5979 },
+    { id: "barra", name: "Barra", region: "North Bank", latitude: 13.4856, longitude: -16.5435 },
+    { id: "essau", name: "Essau", region: "North Bank", latitude: 13.4858, longitude: -16.5262 },
+    { id: "soma", name: "Soma", region: "Lower River", latitude: 13.4446, longitude: -15.5355 },
+    { id: "bansang", name: "Bansang", region: "Central River", latitude: 13.4358, longitude: -14.6588 },
+    { id: "gunjur", name: "Gunjur", region: "West Coast", latitude: 13.1760, longitude: -16.7599 },
+    { id: "sanyang", name: "Sanyang", region: "West Coast", latitude: 13.2676, longitude: -16.7584 },
+    { id: "bintang-bolong", name: "Bintang Bolong", region: "West Coast", latitude: 13.2508, longitude: -16.2120 }
 ].map(Object.freeze));
 
 const DEFAULT_LOCATION_ID = "janjanbureh";

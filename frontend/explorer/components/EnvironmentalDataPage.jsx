@@ -6,15 +6,15 @@ import { useApiResource } from '../hooks/useApiResource.js'
 import { fetchGambiaSourceData } from '../services/api.js'
 
 const CATEGORIES = [
-  { id: 'climate', title: 'Climate', description: 'Daily weather records for the location.' },
-  { id: 'vegetation', title: 'Vegetation', description: 'How green the land is, from 16-day satellite composites.' },
-  { id: 'terrain', title: 'Terrain', description: 'Height and slope, which affect drainage and erosion.' },
-  { id: 'crops', title: 'Crop suitability', description: 'How well the climate and soils suit each crop, from a global model.' },
-  { id: 'imagery', title: 'Satellite imagery', description: 'Recent field-scale scenes that cover the location.' },
+  { id: 'climate', title: 'Weather', description: 'Rain, temperature and air moisture for this area.' },
+  { id: 'vegetation', title: 'Green land', description: 'Satellite pictures that show how green the land is.' },
+  { id: 'terrain', title: 'Land shape', description: 'Land height and slope, which can affect water flow.' },
+  { id: 'crops', title: 'Crop fit', description: 'A guide to crops that may suit this area.' },
+  { id: 'imagery', title: 'Satellite pictures', description: 'Recent satellite views of this area.' },
   {
     id: 'earthdata',
-    title: 'NASA Earthdata',
-    description: 'Soil moisture, rainfall and land-surface data from NASA missions, read with the team’s Earthdata Login.',
+    title: 'NASA satellite data',
+    description: 'Soil water and land information from NASA satellites.',
   },
 ]
 
@@ -23,15 +23,16 @@ function ClimateSummary({ result }) {
   const isPower = result.source.id === 'power'
   const rain = isPower ? 'PRECTOTCORR' : 'precipitation_sum'
   const temp = isPower ? 'T2M_MAX' : 'temperature_2m_max'
+  const soilWater = latest(rows, 'soil_moisture_0_to_7cm_mean')
 
   return (
     <dl className="value-list">
-      <div><dt>Period</dt><dd>{formatDate(result.request.start)} – {formatDate(result.request.end)}</dd></div>
-      <div><dt>Total rainfall</dt><dd>{formatNumber(sum(rows, rain))} mm</dd></div>
-      <div><dt>Latest maximum temperature</dt><dd>{formatNumber(latest(rows, temp))} °C</dd></div>
+      <div><dt>Dates</dt><dd>{formatDate(result.request.start)} – {formatDate(result.request.end)}</dd></div>
+      <div><dt>Rain in this period</dt><dd>{formatNumber(sum(rows, rain))} mm</dd></div>
+      <div><dt>Hottest recent day</dt><dd>{formatNumber(latest(rows, temp))} °C</dd></div>
       {isPower
-        ? <div><dt>Latest root-zone wetness (0–1)</dt><dd>{formatNumber(latest(rows, 'GWETROOT'), 2)}</dd></div>
-        : <div><dt>Latest topsoil moisture</dt><dd>{formatNumber(latest(rows, 'soil_moisture_0_to_7cm_mean'), 3)} m³/m³</dd></div>}
+        ? <div><dt>Air moisture</dt><dd>{formatNumber(latest(rows, 'RH2M'))} %</dd></div>
+        : <div><dt>Soil water near the surface</dt><dd>{formatNumber(soilWater === null ? null : soilWater * 100, 0)}%</dd></div>}
     </dl>
   )
 }
@@ -218,7 +219,7 @@ function SourceCard({ source, locationId }) {
           <h3>{source.name}</h3>
         </div>
         <span className={source.access === 'values' ? 'live-label' : 'planned-label'}>
-          {source.access === 'values' ? 'Values' : 'Catalogue'}
+          {source.access === 'values' ? 'Data' : 'Files'}
         </span>
       </div>
       <p className="panel-description">{source.measures}.</p>
@@ -239,7 +240,7 @@ function SourceCard({ source, locationId }) {
       )}
 
       <LoadState
-        loadingMessage={source.slow ? 'Loading. NASA’s vegetation service is slow, so this can take a few minutes the first time…' : 'Loading data…'}
+        loadingMessage={source.slow ? 'Loading satellite data. This may take a little while…' : 'Loading data…'}
         resource={resource}
       />
       {resource.status === 'success' && <Summary result={resource.data} />}
@@ -264,8 +265,8 @@ function EnvironmentalDataPage({ section, region, sources, locationId, onLocatio
           <div className="page-kicker"><span /> FARM PLANNING <span className="kicker-divider">/</span> THE GAMBIA</div>
           <h1>{section.label}</h1>
           <p>
-            Every connected data source, read for {location ? `${location.name}, ${location.region}` : 'your location'}.
-            “Values” sources return measurements or model output. “Catalogue” sources list the files or scenes that cover the location.
+            Weather and land information for {location ? `${location.name}, ${location.region}` : 'your area'}.
+            These are estimates and satellite records, not readings from your field.
           </p>
         </div>
         <div className="page-controls">
@@ -295,7 +296,7 @@ function EnvironmentalDataPage({ section, region, sources, locationId, onLocatio
 
       {sources.status === 'success' && sources.data.notConnected.length > 0 && (
         <section className="panel">
-          <span className="eyebrow">NOT CONNECTED</span>
+          <span className="eyebrow">NOT AVAILABLE YET</span>
           <ul className="note-list">
             {sources.data.notConnected.map((item) => (
               <li key={item.name}><strong>{item.name}.</strong> {item.reason}</li>

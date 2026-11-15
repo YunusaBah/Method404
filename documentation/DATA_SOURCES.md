@@ -12,7 +12,7 @@ API_CONFIGURATION.md). "Values" sources return numbers for a point;
 
 | Need | Source | Status | Link |
 | --- | --- | --- | --- |
-| Temperature, rainfall, solar, humidity | NASA POWER | Values: `power` | https://power.larc.nasa.gov/ |
+| Temperature, rainfall, solar, humidity, soil wetness | NASA POWER | Values: `power` | https://power.larc.nasa.gov/ |
 | Soil moisture | SMAP | Values with Earthdata token: `smap` | https://www.earthdata.nasa.gov/data/platforms/space-based-platforms/smap |
 | Rainfall | GPM IMERG (Late Run) | Values with Earthdata token: `gpm-imerg` | https://gpm.nasa.gov/data |
 | Vegetation indices, bare-field periods | MODIS / VIIRS | Values: `modis`, `viirs` (NDVI via NASA ORNL DAAC) | https://lpdaac.usgs.gov/products/ |
@@ -44,8 +44,42 @@ also listed and are not expected to be needed.
   and GRACE-FO files are listed only; their values are not extracted yet.
 - Landsat previews redirect to a USGS login, so none are shown.
 
-## NASA POWER parameters to request first
+## NASA POWER parameters currently supported
 
-The existing proxy accepts up to 20 parameter names per request. Candidates,
-to be confirmed against the POWER parameter dictionary before use:
-T2M, T2M_MAX, T2M_MIN, PRECTOTCORR, RH2M, ALLSKY_SFC_SW_DWN, GWETTOP, GWETROOT.
+The backend's default daily parameters are:
+`PRECTOTCORR`, `T2M`, `T2M_MAX`, `T2M_MIN`, `RH2M`, and
+`ALLSKY_SFC_SW_DWN`. The climate overview also explicitly requests the
+optional `GWETTOP` and `GWETROOT` soil-wetness parameters. Those NASA POWER
+values are a dimensionless index from 0 to 1, not a percent of water in soil.
+NASA SMAP adds satellite-based surface moisture when the backend has an
+Earthdata token, and ERA5 (ECMWF, not NASA) adds topsoil and deeper-soil
+estimates. NASA GLDAS can also provide modelled topsoil and root-zone estimates
+when its Earthdata access is configured. None of these gridded products
+measures moisture in a farmer's specific field.
+
+## Locations and crop search
+
+The Gambia API provides 18 searchable town-centre reference points. The
+coordinates are used to request the nearest available satellite or gridded
+records; they do not represent a farmer's exact field. Location names and
+additional town-centre coordinates are based on OpenStreetMap data
+(© OpenStreetMap contributors).
+
+Crop cards use example photographs from Wikimedia Commons to help identify the
+crops. They are illustrative photos, not NASA images, not necessarily from
+The Gambia, and not proof that a crop is growing at the selected location.
+Each photo links to its source and shows its creator and license. Images load
+from Wikimedia Commons and need an internet connection.
+
+Crop advice uses current NASA/ERA5 weather context and the FAO GAEZ v4
+suitability model. The crop search lists 48 GAEZ crop layers and retrieves a
+selected crop's suitability for the chosen location on demand. Only the 12
+crops with planting guidance currently reviewed for The Gambia are ranked as
+current recommendations; the other catalogue entries show their long-term
+GAEZ suitability only and are not presented as planting advice.
+
+The featured-crop NASA POWER lookup also provides preliminary climate scores
+for crops without reviewed profiles. These estimated profiles are explicitly
+marked in the response and UI, and are not used in the reviewed crop-ranking
+or rotation model. They need validation against local varieties and agricultural
+guidance; the scores indicate climate fit only, not yield or guaranteed success.
