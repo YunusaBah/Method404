@@ -30,15 +30,16 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: 'index.html',
-        // The crop photographs are large, so they are cached the first time a
-        // farmer sees them rather than blocking the install on ~900 KB.
+        // Nineteen crops, two sizes each, are real high-resolution photographs.
+        // They are cached the first time a farmer sees them rather than
+        // blocking the install on ~5 MB.
         runtimeCaching: [
           {
-            urlPattern: /\/crops\/[a-z]+\.jpg$/,
+            urlPattern: /\/crops\/[a-z_-]+\.webp$/,
             handler: 'CacheFirst',
             options: {
               cacheName: 'crop-photos',
-              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 60 },
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 60 },
             },
           },
           {

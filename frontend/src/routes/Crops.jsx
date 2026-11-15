@@ -5,11 +5,12 @@ import { rankCrops } from '../lib/rotation'
 import { PlaceBar, PlaceGate } from '../components/PlaceGate'
 import { FieldSetup } from '../components/FieldSetup'
 import { CropCard } from '../components/CropCard'
+import { CatalogueGrid } from '../components/CatalogueGrid'
 import { Loading } from '../components/Loading'
 import { Notice } from '../components/Notice'
 
 export function Crops() {
-  const { t, language, place, status, error, recommendation, soil, priority } = useAppData()
+  const { t, language, place, status, error, recommendation, catalogue, soil, priority } = useAppData()
   const { ready, speak } = useSpeak(language)
   const ranked = recommendation ? rankCrops(recommendation.crops, { priority, soil }) : []
 
@@ -46,6 +47,8 @@ export function Crops() {
           </div>
         )}
       </section>
+
+      <CatalogueGrid crops={catalogue.crops} language={language} />
     </PlaceGate>
   )
 }

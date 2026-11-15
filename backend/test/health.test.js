@@ -74,7 +74,8 @@ test("GET /api lists available API endpoints", async () => {
             gambiaSourceData: "/api/gambia/data/:sourceId",
             recommend: "/api/recommend?lat=13.45&lon=-16.58",
             weather: "/api/weather?lat=13.45&lon=-16.58",
-            places: "/api/places?q=kerewan"
+            places: "/api/places?q=kerewan",
+            crops: "/api/crops"
         }
     });
 });

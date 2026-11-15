@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "vitest run --pool=threads --no-file-parallelism",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "images": "node scripts/fetch-crop-images.mjs"
   },
   "dependencies": {
     "idb-keyval": "^6.2.1",

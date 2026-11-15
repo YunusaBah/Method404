@@ -149,19 +149,40 @@ export function planNotes(scored, soilLabel = null) {
   return notes
 }
 
-/** A sensible starting pair of plans: one that rotates, one that repeats. */
-export function suggestedPlans(crops) {
+function cycleIds(list, length) {
+  if (list.length === 0) return []
+  return Array.from({ length }, (_, index) => list[index % list.length])
+}
+
+/**
+ * A sensible starting pair of plans of `years` seasons: one that alternates
+ * legume and cereal, one that repeats the same family. One season is one year
+ * here, because The Gambia has a single rainy growing season.
+ */
+export function suggestedPlans(crops, years = 3) {
   const byId = new Map(crops.map((crop) => [crop.id, crop]))
   const pick = (ids) => ids.map((id) => byId.get(id)).filter(Boolean)
-  const legumes = crops.filter((crop) => traitFor(crop.id).family === 'legume').map((crop) => crop.id)
-  const cereals = crops.filter((crop) => traitFor(crop.id).family === 'cereal').map((crop) => crop.id)
-  const roots = crops.filter((crop) => traitFor(crop.id).family === 'root').map((crop) => crop.id)
+  const family = (name) =>
+    crops.filter((crop) => traitFor(crop.id).family === name).map((crop) => crop.id)
 
-  const rotating = pick([legumes[0], cereals[0], legumes[1] ?? legumes[0]])
-  const repeating = pick([cereals[1] ?? cereals[0], cereals[2] ?? cereals[0], roots[0] ?? cereals[0]])
+  const legumes = family('legume')
+  const cereals = family('cereal')
+  const all = crops.map((crop) => crop.id)
+
+  const rotating = []
+  for (let index = 0; index < years; index += 1) {
+    const legume = legumes[Math.floor(index / 2) % Math.max(legumes.length, 1)]
+    const cereal = cereals[Math.floor(index / 2) % Math.max(cereals.length, 1)]
+    rotating.push(index % 2 === 0 ? legume ?? cereal : cereal ?? legume)
+  }
+
+  const repeating = cycleIds(cereals.length > 0 ? cereals : all, years)
+
+  const planA = pick(rotating)
+  const planB = pick(repeating)
 
   return [
-    rotating.length >= 2 ? rotating : crops.slice(0, 3),
-    repeating.length >= 2 ? repeating : crops.slice(0, 2).reverse(),
+    planA.length >= 2 ? planA : pick(cycleIds(all, years)),
+    planB.length >= 2 ? planB : pick(cycleIds(all, years).reverse()),
   ]
 }

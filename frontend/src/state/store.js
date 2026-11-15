@@ -3,6 +3,7 @@
 // care about most, and the answer we cached for that field.
 
 import { loadValue, saveValue } from '../persistence/db'
+import { clampHorizon, DEFAULT_HORIZON } from '../lib/planning'
 
 const STORAGE_KEY = 'farmshift.v3'
 
@@ -14,6 +15,7 @@ let state = {
   place: null,
   soil: null,
   priority: 'yield',
+  horizon: DEFAULT_HORIZON,
 }
 
 function emit() {
@@ -26,6 +28,7 @@ function persist() {
     place: state.place,
     soil: state.soil,
     priority: state.priority,
+    horizon: state.horizon,
   })
 }
 
@@ -46,6 +49,7 @@ export async function hydrate() {
     place: saved?.place ?? null,
     soil: saved?.soil ?? null,
     priority: saved?.priority ?? 'yield',
+    horizon: clampHorizon(saved?.horizon ?? DEFAULT_HORIZON),
   }
   emit()
   return state
@@ -74,6 +78,14 @@ export function setSoil(soil) {
 export function setPriority(priority) {
   if (priority === state.priority) return
   state = { ...state, priority }
+  emit()
+  persist()
+}
+
+export function setHorizon(horizon) {
+  const next = clampHorizon(horizon)
+  if (next === state.horizon) return
+  state = { ...state, horizon: next }
   emit()
   persist()
 }

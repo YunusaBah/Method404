@@ -1,12 +1,15 @@
 import { useAppData } from '../context/context'
 import { errorText } from '../lib/errors'
+import { yearKey } from '../lib/planning'
 import { PlaceBar, PlaceGate } from '../components/PlaceGate'
+import { HorizonPicker } from '../components/HorizonPicker'
 import { MonthCalendar } from '../components/MonthCalendar'
+import { YearSummary } from '../components/YearSummary'
 import { Loading } from '../components/Loading'
 import { Notice } from '../components/Notice'
 
 export function Calendar() {
-  const { t, language, place, status, error, recommendation } = useAppData()
+  const { t, language, place, status, error, recommendation, horizon } = useAppData()
 
   return (
     <PlaceGate>
@@ -26,12 +29,34 @@ export function Calendar() {
 
         {status === 'ready' && recommendation && (
           <>
-            <MonthCalendar
-              crops={recommendation.crops}
-              climate={recommendation.climate}
-              language={language}
-            />
+            <HorizonPicker />
+
+            <div className="years">
+              {Array.from({ length: horizon }, (_, offset) => (
+                <section className="year" key={offset}>
+                  <header className="year__head">
+                    <h2 className="year__title">{t(yearKey(offset), { n: offset })}</h2>
+                  </header>
+
+                  {offset === 0 ? (
+                    <MonthCalendar
+                      crops={recommendation.crops}
+                      climate={recommendation.climate}
+                      language={language}
+                    />
+                  ) : (
+                    <YearSummary
+                      crops={recommendation.crops}
+                      climate={recommendation.climate}
+                      language={language}
+                    />
+                  )}
+                </section>
+              ))}
+            </div>
+
             <p className="section__note">{t('plan.note')}</p>
+            <p className="section__note">{t('plan.horizonNote')}</p>
           </>
         )}
       </section>

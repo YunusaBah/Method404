@@ -3,9 +3,9 @@
 A farmer types or speaks the name of their district. The page reads three years
 of NASA rainfall and temperature for that point, ranks the crops that will grow
 there, shows the weather behind the answer, and lays the result out as a
-month-by-month planting calendar. They can then describe their soil, say what
-matters most to them, and compare two multi-season rotations to see which one
-is kinder to the soil.
+month-by-month planting calendar. They choose how many years ahead to plan, can
+describe their soil and say what matters most to them, and then compare two
+rotations year by year to see which one is kinder to the soil.
 
 ## Stack
 
@@ -47,13 +47,30 @@ installed Google Chrome (`channel: 'chrome'`), so no browser download is needed.
 | `/` | Home | "Where is my field?" → today's weather, the three best crops, a way into rotations |
 | `/weather` | Weather | "What is the weather here, and when does rain come?" |
 | `/crops` | Crops | "Which crops fit, and in which months?" |
-| `/plan` | Planting | "What do I plant in each month?" |
-| `/rotation` | Rotations | "In what order should I plant across seasons to protect my soil?" |
+| `/plan` | Planting | "What do I plant each month, this year and the years ahead?" |
+| `/rotation` | Rotations | "In what order should I plant across years to protect my soil?" |
 
 On a phone the sections sit in a fixed tab bar at the bottom, within thumb
 reach. From 900 px they move into a sticky row under the header. The chosen
-field, the soil and the priority are shared by every section, so they are only
-entered once and survive a reload.
+field, the soil, the priority and the planning horizon are shared by every
+section, so they are only entered once and survive a reload.
+
+### Planning horizon
+
+Planting and Rotations share one control: **how far ahead do you want to plan?**
+It offers two, three or four years, and both screens follow it.
+
+- **Planting** shows this year as the full month-by-month calendar. Later years
+  use the same typical pattern, so they are summarised as sowing windows with
+  their top crops and a "+n more" count instead of repeating the calendar.
+- **Rotations** turns one season into one year (The Gambia has a single rainy
+  growing season), so a two- to four-year horizon builds a two- to four-year
+  rotation. Changing the horizon rebuilds the suggested plans; a crop edit made
+  for a different horizon is dropped rather than half-applied.
+
+The data is a recent average, not a year-by-year forecast, and both screens say
+so in plain words. The horizon is a planning rhythm for seed, land and labour —
+never a promise about next year's rain.
 
 ## Fitting the challenge (frontend only)
 
@@ -63,17 +80,19 @@ information, crop characteristics and farmer priorities**, used to explore
 those come from the API. The rest is deliberately done in the browser, so the
 front end can tell the whole story without a new endpoint:
 
-- `src/data/traits.js` — local, coarse traits for the seven crops: family
-  (legume / cereal / root), preferred soils, whether it puts nitrogen back,
-  root depth and how long it covers the ground.
-- `src/components/FieldSetup.jsx` — three soil buttons (sandy / loam / clay) and
-  four priorities (best harvest / save water / build soil / quick harvest).
+- `src/data/catalogue.json` — a generated copy of the backend's 19-crop
+  catalogue. `src/data/traits.js` reads the rotation traits from it, so the
+  catalogue is written once and both sides agree.
 - `src/lib/rotation.js` — pure functions: `soilFit`, `rankCrops` (re-orders the
   API ranking for the chosen soil and priority) and `scorePlan` (scores an
-  ordered list of seasons on soil health, water, variety and speed).
-- `src/routes/Rotation.jsx` + `PlanCard.jsx` — two editable plans side by side,
-  live bars, plain-language reasons, and a short explanation of why rotating
-  families and roots protects the soil.
+  ordered list of years on soil health, water, variety and speed).
+- `src/components/FieldSetup.jsx` — three soil buttons (sandy / loam / clay) and
+  four priorities (best harvest / save water / build soil / quick harvest).
+- `src/lib/planning.js` — the shared horizon: how many years ahead to plan,
+  plus the sowing windows used to summarise later years.
+- `src/routes/Rotation.jsx` + `PlanCard.jsx` — two editable plans of two to four
+  years, live bars, plain-language reasons, and a short explanation of why
+  rotating families and roots protects the soil.
 
 The scores are **relative teaching signals**, not an agronomic model: the screen
 says so in plain words and points the farmer to their extension officer. Nothing
@@ -86,9 +105,13 @@ rain reading the API already returned.
 GET /api/recommend?lat=&lon=&district=   ranked crops + month suitability
 GET /api/weather?lat=&lon=               current conditions + a typical year
 GET /api/places?q=caravan&q=kerewan      place lookup, several transcripts at once
+GET /api/crops?category=&scored=         the 19-crop catalogue, with photo credits
+GET /api/crops/:id                       one crop
 ```
 
-All three are served by Express; only the backend talks to NASA POWER.
+All five are served by Express; only the backend talks to NASA POWER. The
+catalogue is reference data, so the front end falls back to a bundled copy when
+`/api/crops` is unreachable — the first visit works offline.
 
 ### Making dictation understand Gambian names
 
@@ -129,14 +152,35 @@ The same lookup powers the type-ahead, so "brik" already suggests Brikama.
 - **Planting calendar** — one row per month with something to sow; consecutive
   empty months fold into a single range (`January – May`, "11 mm over 5 months").
   Crops are ranked within a row, with the best marked and the current month
-  highlighted.
+  highlighted. The horizon adds later years as compact sowing windows.
+- **Crop catalogue** — all 19 crops and fruits, grouped into field crops and
+  orchard crops, each with a real photograph, its scientific name, whether it is
+  ranked for this field, and the photo credit. Orchard crops are shown for
+  recognition but kept out of the monthly plan and rotations because they are
+  perennial.
 - **Soil and priorities** — a compact panel on Home, Crops and Rotations. It
   re-orders the crop list and adds a "Suits your soil" / "May struggle in your
   soil" tag; it never changes the NASA reading.
-- **Rotation comparison** — two plans of two to four seasons, each slot a crop
+- **Rotation comparison** — two plans of two to four years, each year a crop
   picker with its photograph. Soil health, water, variety and speed bars move as
-  the farmer changes the order, and every plan explains itself in sentences
-  ("A legume before a cereal feeds the next crop").
+  the farmer changes the order or the horizon, and every plan explains itself in
+  sentences ("A legume before a cereal feeds the next crop").
+
+## Crop photographs
+
+`scripts/photo-sources.json` lists one curated Wikimedia Commons file per crop.
+The sources were chosen by eye from candidate contact sheets, never auto-picked.
+`npm run images` then:
+
+1. resolves each Commons file through the API (with retry/backoff on `429`),
+2. draws it to a canvas in headless Chrome and writes a **1280×960** WebP at
+   quality 0.90 plus a **320×240** thumbnail at 0.86,
+3. writes `public/crops/CREDITS.md` and `backend/src/data/photo-credits.json`,
+4. copies `backend/src/data/crops.json` to `src/data/catalogue.json`.
+
+`--force=id,id` regenerates only those crops; a run is resumable, so a partial
+batch never refetches what already exists. The images are committed, so the app
+itself needs neither the script nor the network.
 
 ## Languages
 
@@ -162,12 +206,14 @@ Production build, initial payload:
 
 | File | Raw | Gzip |
 | --- | --- | --- |
-| JavaScript | 222.4 KB | **72.0 KB** |
+| JavaScript | 232.9 KB | **74.9 KB** |
 | workbox-window | 5.7 KB | 2.2 KB |
-| CSS | 24.8 KB | **5.5 KB** |
+| CSS | 27.7 KB | **5.9 KB** |
 
 The photographs are not in that figure: they are separate files cached at
-runtime (~110 KB each, 7 crops plus the hero).
+runtime. There are 19 large images (1280×960, roughly 100–350 KB each) and 19
+thumbnails (320×240, roughly 20–40 KB each), about 5.2 MB in total; the small
+size is what the catalogue grid and plan cards load first.
 
 ## Tests
 
@@ -180,11 +226,14 @@ runtime (~110 KB each, 7 crops plus the hero).
 | `tests/components.test.jsx` | month strip, crop facts, planting calendar, language menu (jsdom) |
 | `tests/render.test.jsx` | server-rendered calendar ranges and soil-fit chips, no DOM needed |
 | `tests/calendar.test.js` | folding empty months into ranges, never losing a month |
+| `tests/planning.test.js` | horizon clamping, sowing windows, year labels, plans of N years |
 | `tests/rotation.test.js` | soil fit, priority ranking, rotation scores, notes, suggested plans |
+| `tests/catalogue.test.js` | the bundled catalogue matches the API shape, 19 crops, 7 scored |
 | `e2e/first-result.spec.js` | three taps to an answer, sections, calendar, language, soil, rotations |
 
-The backend has its own suite (`cd backend && npm test`, 39 tests), covering the
-scoring model, the weather aggregation and the place matcher.
+The backend has its own suite (`cd backend && npm test`, 101 tests), covering the
+scoring model, the weather aggregation, the place matcher and the crop
+catalogue.
 
 On a heavily loaded machine Vitest's worker can time out while jsdom starts
 ("Timeout waiting for worker to respond"). The node-environment suites and
@@ -201,11 +250,14 @@ of the calendar and rotation logic when it happens.
    groundwater. Soil is described by the farmer in the browser, not measured;
    the rotation scores are a relative guide built from crop families.
 4. **Crop constants are coarse.** Water need, season length and heat limit come
-   from FAO/IITA summaries in `backend/src/data/crops.js`; the extra rotation
-   traits are general agronomy in `src/data/traits.js`. This is guidance, not a
-   prescription — the footer and the rotation screen both say so.
-5. **Photographs are AI-generated.** They are recognisable stand-ins, not
-   commissioned photography of Gambian varieties.
+   from FAO/IITA summaries in `backend/src/data/crops.json`; the extra rotation
+   traits sit beside them in the same catalogue. Only the seven crops with
+   validated constants are scored. This is guidance, not a prescription — the
+   footer and the rotation screen both say so.
+5. **Photographs are real, and credited.** The 19 crop photos are curated
+   Wikimedia Commons files, converted at build time to two WebP sizes by
+   `scripts/fetch-crop-images.mjs`. Several are CC BY-SA, so the author, licence
+   and source are shipped in `public/crops/CREDITS.md` and in `/api/crops`.
 6. **The language menu is honest about its gaps.** Three of the four languages
    fall back to English until the dictionaries are translated.
 
@@ -213,18 +265,19 @@ of the calendar and rotation logic when it happens.
 
 ```
 src/
-  api/          recommend, weather and places clients, with cache + errors
+  api/          recommend, weather, places and crops clients, with cache + errors
   context/      AppDataProvider — one fetch per field, shared by every route
-  data/         the eight districts, crop photo paths, rotation traits
+  data/         districts, generated catalogue, crop photo paths, rotation traits
   speech/       Web Speech dictation with alternatives
   audio/        speechSynthesis playback
   state/        tiny external store persisted to IndexedDB
   i18n/         dictionaries + translate(language, key, params)
-  lib/          error messages, month grouping, rotation scoring
-  components/   header, nav, location form, field setup, crop card, plan card,
-                month strip, calendar
+  lib/          error messages, month grouping, planning horizon, rotation scoring
+  components/   header, nav, location form, field setup, horizon picker, crop
+                card, catalogue grid, plan card, month strip, calendar, year summary
   routes/       Home, Weather, Crops, Calendar, Rotation
   styles/       app.css — the only stylesheet
+scripts/        photo-sources.json + fetch-crop-images.mjs
 tests/          vitest
 e2e/            playwright
 ```

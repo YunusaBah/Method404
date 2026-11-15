@@ -16,12 +16,12 @@ browser  ──POST /api/places?q=──▶  Express  ──▶  phonetic gazett
 
 The front end is five screens behind a router: **Home** (place field with voice
 dictation, then the ranked crops), **Weather** (the reading for today and the
-twelve-month record for that point), **Crops** (every crop we know, with the
-weather that suits it), **Planting** (what to sow in each month) and
-**Rotations** (a soil and priority selector plus two editable multi-season plans
-compared on soil health, water, variety and speed). Each crop card carries a
-photograph, a twelve-cell month strip (good / possible / not suitable) and the
-weather that makes the crop work.
+twelve-month record for that point), **Crops** (the full catalogue of 19 crops
+and fruits, with real photographs), **Planting** (what to sow each month, over a
+horizon of two to four years) and **Rotations** (a soil and priority selector
+plus two editable multi-year plans compared on soil health, water, variety and
+speed). Each crop card carries a photograph, a twelve-cell month strip
+(good / possible / not suitable) and the weather that makes the crop work.
 
 ## Requirements
 
@@ -64,7 +64,9 @@ and the crop recommendation the interface uses is `GET /api/recommend`.
 temperature record for the same point, and `POST /api/places` resolves a spoken
 or typed Gambian place name to coordinates — it accepts several spellings at
 once (`q` may be repeated) and returns them ranked, which is how voice input
-recovers "Kerewan" from a recogniser that heard "caravan". Supabase
+recovers "Kerewan" from a recogniser that heard "caravan". `GET /api/crops`
+serves the shared 19-crop catalogue (with photo credits), and the front end
+keeps a bundled copy so the first visit works offline. Supabase
 is configured for a future integration only; there is no authentication or
 persistence yet. See [API configuration](documentation/API_CONFIGURATION.md) and
 [environment setup](documentation/ENVIRONMENT_SETUP.md) for details.
@@ -83,12 +85,14 @@ npm run build
 ## Current scope
 
 Working today: NASA POWER climatology and a current reading for any point, a
-seven-crop scoring model with month-level suitability, a phonetic gazetteer of
-34 Gambian places that voice input can reach, and the five-screen interface with
-voice input, voice output and an offline cache. The soil selector, farmer
-priorities and rotation planner live entirely in the browser on local crop
-traits, so they need no new API. Not yet done: measured soil data, irrigation,
-Supabase persistence, showing the long-term climate *shift* rather than the
-current normal, and translation of the Mandinka, Wolof and Fula dictionaries.
+seven-crop scoring model with month-level suitability, a 19-crop catalogue with
+curated Wikimedia Commons photographs (two WebP sizes plus attribution), a
+phonetic gazetteer of 34 Gambian places that voice input can reach, and the
+five-screen interface with voice input, voice output and an offline cache. The
+soil selector, farmer priorities, planning horizon and rotation planner live
+entirely in the browser on local crop traits, so they need no new API. Not yet
+done: measured soil data, irrigation, Supabase persistence, showing the
+long-term climate *shift* rather than the current normal, and translation of the
+Mandinka, Wolof and Fula dictionaries.
 Where a value is modelled rather than observed, the API says so through the
 `limiting` field and the UI explains it in plain words.

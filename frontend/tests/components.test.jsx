@@ -31,7 +31,7 @@ describe('CropCard', () => {
     render(<CropCard crop={cowpea} rank={1} language="en" isBest />)
 
     expect(screen.getByRole('heading', { name: 'Cowpea' })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Cowpea' })).toHaveAttribute('src', '/crops/cowpea.jpg')
+    expect(screen.getByRole('img', { name: 'Cowpea' })).toHaveAttribute('src', '/crops/cowpea.webp')
     expect(screen.getByText('Best match')).toBeInTheDocument()
   })
 

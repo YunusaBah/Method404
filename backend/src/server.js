@@ -10,6 +10,7 @@ const gambiaRoutes = require("./routes/gambiaRoutes");
 const recommendRoutes = require("./routes/recommendRoutes");
 const placeRoutes = require("./routes/placeRoutes");
 const weatherRoutes = require("./routes/weatherRoutes");
+const cropRoutes = require("./routes/cropRoutes");
 const errorHandler = require("./middleware/errorHandler");
 
 function isLocalDevelopmentOrigin(origin, nodeEnv) {
@@ -72,7 +73,8 @@ function createApp(appConfig = config) {
                 gambiaSourceData: "/api/gambia/data/:sourceId",
                 recommend: "/api/recommend?lat=13.45&lon=-16.58",
                 weather: "/api/weather?lat=13.45&lon=-16.58",
-                places: "/api/places?q=kerewan"
+                places: "/api/places?q=kerewan",
+                crops: "/api/crops"
             }
         });
     });
@@ -84,6 +86,7 @@ function createApp(appConfig = config) {
     app.use("/api/recommend", recommendRoutes);
     app.use("/api/places", placeRoutes);
     app.use("/api/weather", weatherRoutes);
+    app.use("/api/crops", cropRoutes);
     app.use(errorHandler);
 
     return app;

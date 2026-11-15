@@ -4,6 +4,7 @@ import { errorText } from '../lib/errors'
 import { scorePlan, suggestedPlans } from '../lib/rotation'
 import { PlaceBar, PlaceGate } from '../components/PlaceGate'
 import { FieldSetup } from '../components/FieldSetup'
+import { HorizonPicker } from '../components/HorizonPicker'
 import { PlanCard } from '../components/PlanCard'
 import { Loading } from '../components/Loading'
 import { Notice } from '../components/Notice'
@@ -12,14 +13,16 @@ const TITLES = ['rotation.planA', 'rotation.planB']
 const WHY = ['rotation.why.1', 'rotation.why.2', 'rotation.why.3', 'rotation.why.4']
 
 export function Rotation() {
-  const { t, language, place, status, error, recommendation, soil, priority } = useAppData()
+  const { t, language, place, status, error, recommendation, soil, priority, horizon } = useAppData()
   const crops = recommendation?.crops ?? []
-  const suggested = suggestedPlans(crops)
+  const suggested = suggestedPlans(crops, horizon)
   const [edits, setEdits] = useState([null, null])
 
   const plans = suggested.map((base, index) => {
     const ids = edits[index]
-    if (!ids) return base
+    // An edit made for a different horizon no longer fits, so fall back to the
+    // freshly suggested plan instead of showing a half-updated rotation.
+    if (!ids || ids.length !== horizon) return base
     return ids.map((id) => crops.find((crop) => crop.id === id)).filter(Boolean)
   })
 
@@ -31,9 +34,9 @@ export function Rotation() {
         : 1
       : -1
 
-  function edit(planIndex, mutate) {
-    const current = plans[planIndex].map((crop) => crop.id)
-    const next = mutate(current)
+  function setCrop(planIndex, seasonIndex, id) {
+    const next = plans[planIndex].map((crop) => crop.id)
+    next[seasonIndex] = id
     setEdits((previous) => {
       const copy = [...previous]
       copy[planIndex] = next
@@ -63,6 +66,8 @@ export function Rotation() {
 
         {crops.length > 0 && (
           <>
+            <HorizonPicker />
+
             <h2 className="panel__title">{t('rotation.compare')}</h2>
             <p className="section__sub">{t('rotation.compareSub')}</p>
 
@@ -77,16 +82,7 @@ export function Rotation() {
                   language={language}
                   soilLabel={soilLabel}
                   winner={winner === index}
-                  onChange={(season, id) =>
-                    edit(index, (ids) => {
-                      ids[season] = id
-                      return ids
-                    })
-                  }
-                  onAdd={() =>
-                    edit(index, (ids) => [...ids, crops[0]?.id ?? ids[0]])
-                  }
-                  onRemove={() => edit(index, (ids) => ids.slice(0, -1))}
+                  onChange={(season, id) => setCrop(index, season, id)}
                 />
               ))}
             </div>

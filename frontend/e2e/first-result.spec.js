@@ -119,6 +119,12 @@ test('the rotation planner compares two editable plans', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Plan A', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Plan B', exact: true })).toBeVisible()
   await expect(page.getByText('Better for your priorities')).toBeVisible()
+
+  // Two plans, two years each by default.
+  await expect(page.locator('.season__select')).toHaveCount(4)
+
+  // The horizon drives the rotation length: three years means three per plan.
+  await page.getByRole('button', { name: '3 years' }).click()
   await expect(page.locator('.season__select')).toHaveCount(6)
 
   const planA = page.locator('.plan').first()
@@ -135,11 +141,18 @@ test('the planting calendar names crops for each month', async ({ page }) => {
   await page.getByRole('button', { name: 'Banjul' }).click()
   await page.getByRole('link', { name: 'Planting' }).click()
 
+  await expect(page.getByRole('heading', { name: 'This year' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Next year' })).toBeVisible()
+
   const july = page.getByRole('listitem').filter({ hasText: 'July' }).first()
   await expect(july.getByText('Cowpea')).toBeVisible()
 
   const january = page.getByRole('listitem').filter({ hasText: 'January' }).first()
   await expect(january.getByText('Too dry or too hot for the crops we know.')).toBeVisible()
+
+  // A longer horizon adds the year after next as a compact summary.
+  await page.getByRole('button', { name: '3 years' }).click()
+  await expect(page.getByRole('heading', { name: 'In 2 years' })).toBeVisible()
 })
 
 test('the language menu switches language and remembers it', async ({ page }) => {

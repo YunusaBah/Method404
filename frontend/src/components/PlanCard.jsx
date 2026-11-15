@@ -1,6 +1,5 @@
-import { Minus, Plus } from 'lucide-react'
 import { translate } from '../i18n'
-import { cropPhoto } from '../data/crops'
+import { cropThumb } from '../data/crops'
 import { planNotes } from '../lib/rotation'
 
 const BARS = [
@@ -10,18 +9,7 @@ const BARS = [
   { key: 'speed', label: 'rotation.score.speed' },
 ]
 
-export function PlanCard({
-  title,
-  plan,
-  crops,
-  scored,
-  language,
-  soilLabel,
-  winner,
-  onChange,
-  onAdd,
-  onRemove,
-}) {
+export function PlanCard({ title, plan, crops, scored, language, soilLabel, winner, onChange }) {
   const t = (key, params) => translate(language, key, params)
   const notes = planNotes(scored, soilLabel)
 
@@ -35,10 +23,10 @@ export function PlanCard({
       <ol className="seasons">
         {plan.map((crop, index) => (
           <li className="season" key={`${index}-${crop.id}`}>
-            <span className="season__label">{t('rotation.season', { n: index + 1 })}</span>
+            <span className="season__label">{t('rotation.year', { n: index + 1 })}</span>
             <img
               className="season__photo"
-              src={cropPhoto(crop.id)}
+              src={cropThumb(crop.id)}
               alt=""
               width="40"
               height="40"
@@ -48,7 +36,7 @@ export function PlanCard({
               className="season__select"
               value={crop.id}
               onChange={(event) => onChange(index, event.target.value)}
-              aria-label={t('rotation.season', { n: index + 1 })}
+              aria-label={t('rotation.year', { n: index + 1 })}
             >
               {crops.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -59,17 +47,6 @@ export function PlanCard({
           </li>
         ))}
       </ol>
-
-      <div className="plan__actions">
-        <button type="button" className="plan__action" onClick={onAdd} disabled={plan.length >= 4}>
-          <Plus size={14} strokeWidth={2.2} aria-hidden="true" />
-          {t('rotation.add')}
-        </button>
-        <button type="button" className="plan__action" onClick={onRemove} disabled={plan.length <= 2}>
-          <Minus size={14} strokeWidth={2.2} aria-hidden="true" />
-          {t('rotation.remove')}
-        </button>
-      </div>
 
       {scored && (
         <>

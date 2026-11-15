@@ -5,11 +5,18 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { AppDataContext } from '../src/context/context'
 import { translate } from '../src/i18n'
+import { HorizonPicker } from '../src/components/HorizonPicker'
 import { MonthCalendar } from '../src/components/MonthCalendar'
+import { YearSummary } from '../src/components/YearSummary'
 import { CropCard } from '../src/components/CropCard'
 import { climate, cowpea, millet } from './fixtures'
 
-const context = { t: (key, params) => translate('en', key, params), language: 'en' }
+const context = {
+  t: (key, params) => translate('en', key, params),
+  language: 'en',
+  horizon: 2,
+  setHorizon: () => {},
+}
 
 function render(element) {
   return renderToStaticMarkup(
@@ -33,6 +40,34 @@ describe('MonthCalendar rendered', () => {
     expect(html).toContain('July')
     expect(html).toContain('304 mm')
     expect(html).toContain('Cowpea')
+  })
+})
+
+describe('HorizonPicker rendered', () => {
+  const html = render(<HorizonPicker />)
+
+  it('offers two, three and four years', () => {
+    expect(html).toContain('How far ahead do you want to plan?')
+    expect(html).toContain('2 years')
+    expect(html).toContain('3 years')
+    expect(html).toContain('4 years')
+  })
+
+  it('marks the chosen horizon as pressed', () => {
+    expect(html).toContain('aria-pressed="true"')
+    expect(html).toContain('aria-pressed="false"')
+  })
+})
+
+describe('YearSummary rendered', () => {
+  it('summarises the sowing windows for a later year', () => {
+    const html = render(
+      <YearSummary crops={[cowpea, millet]} climate={climate} language="en" />,
+    )
+
+    expect(html).toContain('June')
+    expect(html).toContain('Cowpea')
+    expect(html).toContain('window__months')
   })
 })
 
