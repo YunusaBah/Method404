@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Globe } from 'lucide-react'
 import { LANGUAGES, languageById } from '../i18n'
 
-// Marks a language whose dictionary is still being written, so the menu does
-// not pretend the switch changed anything.
+// Marks a language whose translations are not yet available.
 const FALLBACK_CODE = 'EN'
 
 export function LanguageMenu({ language, onSelect, label, chooseLabel, pendingLabel }) {

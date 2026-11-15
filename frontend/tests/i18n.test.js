@@ -1,15 +1,36 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { monthName, monthShort, translate } from '../src/i18n'
+import en from '../src/i18n/en.json'
+import ff from '../src/i18n/ff.json'
+import wo from '../src/i18n/wo.json'
+import { LANGUAGES, monthName, monthShort, translate } from '../src/i18n'
 
 describe('translation', () => {
   it('reads English strings from the dictionary', () => {
     expect(translate('en', 'hero.title')).toBe('Know what to plant, and when.')
   })
 
-  it('falls back to English when a language has no entry yet', () => {
+  it('uses the available translations and falls back for untranslated Mandinka', () => {
+    expect(translate('wo', 'hero.title')).not.toBe(translate('en', 'hero.title'))
+    expect(translate('ff', 'hero.title')).not.toBe(translate('en', 'hero.title'))
     expect(translate('mnk', 'hero.title')).toBe('Know what to plant, and when.')
-    expect(translate('ff', 'results.best')).toBe('Best match')
+    expect(translate('ff', 'results.best')).not.toBe(translate('en', 'results.best'))
+    expect(LANGUAGES.find((language) => language.id === 'mnk').complete).toBe(false)
+    expect(LANGUAGES.find((language) => language.id === 'wo').complete).toBe(true)
+    expect(LANGUAGES.find((language) => language.id === 'ff').complete).toBe(true)
+  })
+
+  it('covers every English key and preserves dynamic parameters in Wolof and Pulaar', () => {
+    for (const dictionary of [wo, ff]) {
+      expect(Object.keys(dictionary).sort()).toEqual(Object.keys(en).sort())
+      for (const [key, template] of Object.entries(en)) {
+        const parameters = [...template.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort()
+        const translatedParameters = [...dictionary[key].matchAll(/\{(\w+)\}/g)]
+          .map((match) => match[1])
+          .sort()
+        expect(translatedParameters, key).toEqual(parameters)
+      }
+    }
   })
 
   it('fills in named parameters', () => {
