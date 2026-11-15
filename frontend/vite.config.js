@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -51,6 +52,8 @@ export default defineConfig({
             },
           },
         ],
+        // The data explorer is a separate page; never answer it with the app shell.
+        navigateFallbackDenylist: [/^\/data(\.html)?$/],
       },
       devOptions: { enabled: false },
     }),
@@ -73,5 +76,13 @@ export default defineConfig({
   },
   build: {
     target: 'es2020',
+    rollupOptions: {
+      // Two pages: the farmer app (index.html) and the NASA data explorer
+      // (data.html), kept separate so their styles never mix.
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        data: fileURLToPath(new URL('./data.html', import.meta.url)),
+      },
+    },
   },
 })

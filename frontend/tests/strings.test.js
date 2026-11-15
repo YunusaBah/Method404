@@ -1,4 +1,5 @@
 // @vitest-environment node
+// Reads source files from disk, so it needs Node rather than the browser environment.
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -40,7 +41,9 @@ describe('user-facing strings', () => {
   it('never hardcodes text between tags', () => {
     const offenders = []
     for (const source of sources) {
-      const matches = source.text.match(/(?<![=/])>\s*[A-Za-z][A-Za-z ,.'-]{2,}\s*</g)
+      // Text on one line between a tag's ">" and the next "<". Arrow
+      // functions ("=> Promise<") and code after a line break are not text.
+      const matches = source.text.match(/(?<!=)>[^\S\n]*[A-Za-z][A-Za-z ,.'-]{2,}[^\S\n]*</g)
       if (matches) offenders.push(`${source.file}: ${matches.join(', ')}`)
     }
     expect(offenders).toEqual([])

@@ -1,27 +1,6 @@
 # FarmShift AI — METHOD404
 
-FarmShift AI is an agricultural decision-support project for crop planning. The
-initial target region is The Gambia. A farmer names their district; the API
-fetches NASA POWER rainfall and temperature for that point and returns a ranked
-list of crops with the months that suit each one.
-
-## How it works
-
-```
-browser  ──POST /api/places?q=──▶  Express  ──▶  phonetic gazetteer
-         ──GET  /api/weather?lat=&lon=──▶       ──▶  NASA POWER (current + monthly)
-         ──GET  /api/recommend?lat=&lon=──▶     ──▶  NASA POWER (3-year climatology)
-         ◀── climate + ranked crops ────
-```
-
-The front end is five screens behind a router: **Home** (place field with voice
-dictation, then the ranked crops), **Weather** (the reading for today and the
-twelve-month record for that point), **Crops** (the full catalogue of 19 crops
-and fruits, with real photographs), **Planting** (what to sow each month, over a
-horizon of two to four years) and **Rotations** (a soil and priority selector
-plus two editable multi-year plans compared on soil health, water, variety and
-speed). Each crop card carries a photograph, a twelve-cell month strip
-(good / possible / not suitable) and the weather that makes the crop work.
+FarmShift AI is an agricultural decision-support project for exploring environmental context for crop planning. The initial target region is The Gambia. Its React dashboard reads live climate, vegetation, terrain, crop-suitability and satellite catalogue data for locations in The Gambia. It also includes NASA POWER endpoints and Supabase-backed farm and climate-observation APIs; hosted persistence requires the Supabase schema migration to be applied.
 
 ## Requirements
 
@@ -49,27 +28,20 @@ This starts the API on port `5000` and Vite on port `5173` (or Vite's next avail
 
 You can also run only one service from the root with `npm run dev:backend` or `npm run dev:frontend`.
 
-Open the Vite URL printed in the frontend terminal (normally `http://localhost:5173`). The dashboard checks the backend health endpoint and displays its connection state.
+Open the Vite URL printed in the frontend terminal (normally `http://localhost:5173`). The frontend has two pages:
+
+- **Farmer app** (`/`): the step-by-step rotation planner (location, soil, water, priorities), in English, Mandinka, Wolof and Pulaar. Its plans come from the backend engine, which uses ten years of NASA POWER daily rainfall and temperature plus FAO GAEZ suitability. Set `VITE_USE_MOCK=true` in `frontend/.env` to work on the UI without the backend.
+- **Data explorer** (`/data.html`): the dashboard, Climate Insights, Crop Recommendations, Crop Rotation Planner and Environmental Data pages, showing every NASA and partner data source.
+
+On macOS, port 5000 is often taken by the AirPlay Receiver; the launcher then uses port 5001 and points the frontend at it automatically.
 
 ## Configuration
 
 Backend settings are loaded from `backend/.env`. The repository includes an ignored development configuration; use `backend/.env.example` as the template for a fresh checkout. Production requires `CLIENT_URL` and `CORS_ORIGINS` to be set explicitly to exact frontend origins. Unlisted browser origins are rejected in production. Requests without an `Origin` header (for example, command-line health checks) are allowed.
 
-Copy `frontend/.env.example` to `frontend/.env` to set `VITE_API_BASE_URL`; it defaults to `http://localhost:5000/api`. The shared Axios client uses a ten-second timeout and reports connection failures consistently. Vite variables prefixed with `VITE_` are included in browser code, so use this setting only for public configuration; never put credentials or secrets in it.
+Copy `frontend/.env.example` to `frontend/.env` to set `VITE_API_BASE_URL`; it defaults to `http://localhost:5000/api`. Configure the Supabase project URL and publishable key for browser Auth. Vite variables prefixed with `VITE_` are included in browser code, so only public configuration belongs there; never put a secret key in a `VITE_` variable.
 
-The backend health check is available at `GET /api/health`. NASA POWER daily
-point data is available through the validated `GET /api/nasa/power/daily` proxy,
-and the crop recommendation the interface uses is `GET /api/recommend`.
-`GET /api/weather` returns the latest day plus a twelve-month rainfall and
-temperature record for the same point, and `POST /api/places` resolves a spoken
-or typed Gambian place name to coordinates — it accepts several spellings at
-once (`q` may be repeated) and returns them ranked, which is how voice input
-recovers "Kerewan" from a recogniser that heard "caravan". `GET /api/crops`
-serves the shared 19-crop catalogue (with photo credits), and the front end
-keeps a bundled copy so the first visit works offline. Supabase
-is configured for a future integration only; there is no authentication or
-persistence yet. See [API configuration](documentation/API_CONFIGURATION.md) and
-[environment setup](documentation/ENVIRONMENT_SETUP.md) for details.
+The backend health check is available at `GET /api/health`. NASA POWER daily point data and summaries are available at `GET /api/nasa/power` and `GET /api/nasa/power/summary`; all 13 data sources for locations in The Gambia are available under `GET /api/gambia/data/:sourceId`. `GET /api/health/supabase` checks the hosted Supabase Data API and `profiles` table, while authenticated farm and climate endpoints use the caller's Supabase access token and database RLS. See [Supabase setup](documentation/SUPABASE_SETUP.md), [API configuration](documentation/API_CONFIGURATION.md), [data sources](documentation/DATA_SOURCES.md), and [environment setup](documentation/ENVIRONMENT_SETUP.md) for details.
 
 ## Quality checks
 
@@ -78,21 +50,9 @@ cd backend
 npm test
 cd ..\frontend
 npm run lint
-npm run test
 npm run build
 ```
 
 ## Current scope
 
-Working today: NASA POWER climatology and a current reading for any point, a
-seven-crop scoring model with month-level suitability, a 19-crop catalogue with
-curated Wikimedia Commons photographs (two WebP sizes plus attribution), a
-phonetic gazetteer of 34 Gambian places that voice input can reach, and the
-five-screen interface with voice input, voice output and an offline cache. The
-soil selector, farmer priorities, planning horizon and rotation planner live
-entirely in the browser on local crop traits, so they need no new API. Not yet
-done: measured soil data, irrigation, Supabase persistence, showing the
-long-term climate *shift* rather than the current normal, and translation of the
-Mandinka, Wolof and Fula dictionaries.
-Where a value is modelled rather than observed, the API says so through the
-`limiting` field and the UI explains it in plain words.
+Climate Insights, Crop Recommendations, the Crop Rotation Planner and Environmental Data use live data. Supabase farm persistence is available after applying the hosted schema migration. The interface does not present simulated or sample values as NASA observations.

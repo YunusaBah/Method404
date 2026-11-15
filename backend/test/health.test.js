@@ -153,6 +153,46 @@ test("NASA POWER endpoint rejects invalid coordinates before contacting the upst
         },
         message: "latitude must be a number between -90 and 90."
     });
+
+});
+
+test("NASA POWER observation and summary routes validate query parameters", async () => {
+    const invalidCoordinate = await fetch(
+        `${baseUrl}/api/nasa/power?latitude=91&longitude=-16.58&start=20240101&end=20240103`
+    );
+    assert.equal(invalidCoordinate.status, 400);
+    assert.equal((await invalidCoordinate.json()).error.code, "INVALID_LATITUDE");
+
+    const invalidDate = await fetch(
+        `${baseUrl}/api/nasa/power/summary?latitude=13.45&longitude=-16.58&start=20240230&end=20240301`
+    );
+    assert.equal(invalidDate.status, 400);
+    assert.equal((await invalidDate.json()).error.code, "INVALID_START_DATE");
+});
+
+test("NASA POWER summary endpoint returns clearly marked derived summaries", async (t) => {
+    const originalGetSummary = nasaPowerService.getSummary;
+    nasaPowerService.getSummary = async () => ({
+        source: "NASA POWER Daily API",
+        attribution: "NASA Langley Research Center POWER Project",
+        request: { latitude: 13.45, longitude: -16.58, start: "20240101", end: "20240103" },
+        metadata: { returnedDateCount: 3 },
+        summaries: { averageTemperature: { value: 25, unit: "C", derivedFrom: "T2M" } },
+        observations: [{ date: "2024-01-01", parameter: "T2M", value: 25, unit: "C", missing: false }]
+    });
+    t.after(() => {
+        nasaPowerService.getSummary = originalGetSummary;
+    });
+
+    const response = await fetch(
+        `${baseUrl}/api/nasa/power/summary?latitude=13.45&longitude=-16.58&start=20240101&end=20240103`
+    );
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.source, "NASA POWER Daily API");
+    assert.equal(body.summaries.averageTemperature.derivedFrom, "T2M");
+    assert.equal(body.observations[0].value, 25);
 });
 
 test("NASA POWER observation and summary routes validate query parameters", async () => {
