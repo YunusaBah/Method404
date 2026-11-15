@@ -1,45 +1,59 @@
 import { useEffect } from 'react'
-import { HashRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
-import { LANGUAGES } from './i18n'
-import { LocationScreen } from './screens/Location'
-import { PlanScreen } from './screens/Plan'
-import { PrioritiesScreen } from './screens/Priorities'
-import { SoilScreen } from './screens/Soil'
-import { WaterScreen } from './screens/Water'
-import { useAppState } from './state/store'
+import { HashRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { AppDataProvider } from './context/AppData'
+import { useAppData } from './context/context'
+import { Header } from './components/Header'
+import { Nav } from './components/Nav'
+import { Home } from './routes/Home'
+import { Weather } from './routes/Weather'
+import { Crops } from './routes/Crops'
+import { Calendar } from './routes/Calendar'
+import { Rotation } from './routes/Rotation'
 
-function SetupRoute() {
-  const { step } = useParams()
-  const { profile } = useAppState()
+function ScrollToTop() {
+  const { pathname } = useLocation()
 
-  if (step === 'location') return <LocationScreen />
-  if (!profile) return <Navigate replace to="/setup/location" />
-  if (step === 'soil') return <SoilScreen />
-  if (step === 'water') return <WaterScreen />
-  if (step === 'priorities') return <PrioritiesScreen />
-  return <Navigate replace to="/" />
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [pathname])
+
+  return null
+}
+
+function Footer() {
+  const { t } = useAppData()
+
+  return (
+    <footer className="footer">
+      <p>{t('footer.note')}</p>
+      <p>{t('footer.team')}</p>
+    </footer>
+  )
 }
 
 export default function App() {
-  const { hydrated, language, profile } = useAppState()
-
-  useEffect(() => {
-    const entry = LANGUAGES.find((item) => item.id === language)
-    document.documentElement.lang = entry?.htmlLang ?? 'en'
-  }, [language])
-
-  if (!hydrated) return null
-
   return (
-    <HashRouter>
-      <Routes>
-        <Route
-          element={profile ? <PlanScreen /> : <Navigate replace to="/setup/location" />}
-          path="/"
-        />
-        <Route element={<SetupRoute />} path="/setup/:step" />
-        <Route element={<Navigate replace to="/" />} path="*" />
-      </Routes>
-    </HashRouter>
+    <AppDataProvider>
+      <HashRouter>
+        <ScrollToTop />
+        <div className="shell">
+          <div className="wrap">
+            <Header />
+            <Nav />
+            <main className="main">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/weather" element={<Weather />} />
+                <Route path="/crops" element={<Crops />} />
+                <Route path="/plan" element={<Calendar />} />
+                <Route path="/rotation" element={<Rotation />} />
+                <Route path="*" element={<Home />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </div>
+      </HashRouter>
+    </AppDataProvider>
   )
 }

@@ -9,11 +9,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'FarmShift',
+        name: 'FarmShift — crops that fit your field',
         short_name: 'FarmShift',
-        description: 'Crop rotation plans for smallholder farmers in The Gambia.',
-        theme_color: '#FFFFFF',
-        background_color: '#FFFFFF',
+        description: 'NASA rainfall and temperature, matched to the crops that will grow in your field.',
+        theme_color: '#FBFCFA',
+        background_color: '#FBFCFA',
         display: 'standalone',
         start_url: './',
         icons: [
@@ -30,10 +30,46 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: 'index.html',
+        // The crop photographs are large, so they are cached the first time a
+        // farmer sees them rather than blocking the install on ~900 KB.
+        runtimeCaching: [
+          {
+            urlPattern: /\/crops\/[a-z]+\.jpg$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'crop-photos',
+              expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 60 },
+            },
+          },
+          {
+            urlPattern: /\/hero\.jpg$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'hero-photo',
+              expiration: { maxEntries: 2, maxAgeSeconds: 60 * 60 * 24 * 60 },
+            },
+          },
+        ],
       },
       devOptions: { enabled: false },
     }),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
+  },
+  preview: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     target: 'es2020',
   },

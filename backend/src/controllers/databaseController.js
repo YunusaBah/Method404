@@ -5,13 +5,14 @@ async function getDatabaseHealth(req, res) {
         await databaseService.checkConnection();
         return res.status(200).json({
             success: true,
-            database: "connected"
+            supabase: "connected"
         });
-    } catch {
+    } catch (error) {
         return res.status(503).json({
             success: false,
-            database: "unavailable",
-            message: "The database is not configured or is currently unavailable."
+            supabase: "unavailable",
+            code: error.code || "SUPABASE_UNAVAILABLE",
+            message: error.message || "Unable to connect to the configured Supabase project."
         });
     }
 }

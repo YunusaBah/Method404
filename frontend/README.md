@@ -1,146 +1,230 @@
 # FarmShift — front end
 
-A decision-support tool that helps smallholder farmers in The Gambia choose a
-three-season crop rotation using NASA Earth observations, local soil, crop
-characteristics and the farmer's own priorities.
+A farmer types or speaks the name of their district. The page reads three years
+of NASA rainfall and temperature for that point, ranks the crops that will grow
+there, shows the weather behind the answer, and lays the result out as a
+month-by-month planting calendar. They can then describe their soil, say what
+matters most to them, and compare two multi-season rotations to see which one
+is kinder to the soil.
 
-This folder is the **front end only**. It runs against a deterministic mock of
-the agronomy engine, so the whole flow can be built, demoed and tested offline.
+## Stack
 
 - React 18 + Vite, **plain JavaScript** (`.js` / `.jsx`, no TypeScript)
-- Hand-written CSS in one stylesheet (`src/styles/tokens.css`) — **no Tailwind**
-- Offline-first PWA (`vite-plugin-pwa`, service worker precaches the shell)
-- HashRouter, so it can be served from any static path
+- Hand-written CSS in one stylesheet (`src/styles/app.css`) — **no Tailwind**
+- `react-router-dom` (HashRouter) with five sections
+- Helvetica, full-width layout, one green accent
+- Offline-first PWA (`vite-plugin-pwa`), last answer cached in IndexedDB
+- Voice in (Web Speech recognition) and voice out (`speechSynthesis`)
 
-## Commands
+## Running it
+
+The page needs the Express API, which is the only thing that talks to NASA.
 
 ```bash
-npm install          # install dependencies
-npm run dev          # dev server on http://localhost:5173
-npm run build        # production build into dist/
-npm run preview      # serve the built app
-npm run lint         # eslint
-npm run test         # vitest unit tests (jsdom)
-npm run e2e          # playwright, builds and previews automatically
+# terminal 1 — API on :5000
+cd backend && npm install && npm start
+
+# terminal 2 — front end on :5173 (proxies /api to :5000)
+cd frontend && npm install && npm run dev
 ```
 
-The Playwright project uses the installed Google Chrome (`channel: 'chrome'`),
-so no browser download is needed.
-
-## Using the mock
-
-The mock is the default engine:
-
-```js
-// src/engine/index.js
-export const usingMock = import.meta.env.VITE_USE_MOCK !== 'false'
-```
-
-To point the UI at a real engine, set `VITE_USE_MOCK=false` and swap the
-`createMockEngine()` call for the real implementation. The contract the engine
-has to satisfy is documented in `src/engine/contract.js` (JSDoc typedefs) and
-was the only thing the UI was built against:
-
-```js
-engine.plan(profile, scenario, fixed)   // -> { status: 'ok' | 'insufficient', ... }
-engine.slotOptions(profile, scenario, slot, fixed)
-engine.districts()
-engine.nearestCell(lat, lon)
-```
-
-While the mock is selected the console prints
-`[FarmShift] MOCK DATA: the agronomy engine is not connected.` and the Numbers
-sheet shows a `MOCK DATA` banner.
-
-## Bundle
-
-Initial payload of the production build (gzip):
-
-| File | Size (gzip) |
+| Command | What it does |
 | --- | --- |
-| JavaScript | <!--JS--> |
-| CSS | <!--CSS--> |
+| `npm run dev` | dev server on http://localhost:5173 |
+| `npm run build` | production build into `dist/` |
+| `npm run preview` | serve `dist/` (proxies `/api` to :5000) |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest |
+| `npm run e2e` | Playwright, builds and previews automatically |
 
-Budget was 200 KB gzipped for initial JavaScript.
+`VITE_API_BASE_URL` overrides the API root (default `/api`). Playwright uses the
+installed Google Chrome (`channel: 'chrome'`), so no browser download is needed.
 
-## How the screens fit together
+## The five sections
 
-| Route | Screen | What it asks |
+| Route | Section | What it answers |
 | --- | --- | --- |
-| `/setup/location` | Location | "Where is your farm?" — geolocation or a district list |
-| `/setup/soil` | Soil | "What happens when you squeeze your soil?" — four pictures |
-| `/setup/water` | Water | "How do you water your crops?" |
-| `/setup/priorities` | Priorities | "What matters to you?" — pick up to three |
-| `/` | Plan | the recommended rotation, its alternatives, and the sheets |
+| `/` | Home | "Where is my field?" → today's weather, the three best crops, a way into rotations |
+| `/weather` | Weather | "What is the weather here, and when does rain come?" |
+| `/crops` | Crops | "Which crops fit, and in which months?" |
+| `/plan` | Planting | "What do I plant in each month?" |
+| `/rotation` | Rotations | "In what order should I plant across seasons to protect my soil?" |
 
-The plan is a stack of three seasons. Each season shows the crop glyph, ten
-outcome squares (one per past season: filled = good, left half = poor, outline =
-failed), a monochrome weekly rain strip, and a plain sentence — "Good in 6 of 10
-past seasons".
+On a phone the sections sit in a fixed tab bar at the bottom, within thumb
+reach. From 900 px they move into a sticky row under the header. The chosen
+field, the soil and the priority are shared by every section, so they are only
+entered once and survive a reload.
 
-Four sheets hang off the plan:
+## Fitting the challenge (frontend only)
 
-- **Change this season** — up to three alternatives, or "Let the app choose".
-- **Why this plan** — at most three reasons, in words, with a Listen button.
-- **What if…** — rain −40…+20 % and heat 0…+3 °C, marked "Imagined, not a forecast".
-- **Numbers** — the underlying rows with an Observed / Derived / Modeled tag.
+The NASA Space Apps brief asks for NASA observations **plus local soil
+information, crop characteristics and farmer priorities**, used to explore
+**rotation strategies that strengthen soil health**. Only the first and third of
+those come from the API. The rest is deliberately done in the browser, so the
+front end can tell the whole story without a new endpoint:
 
-Every sheet pushes a history entry, so the Android back button closes the sheet
-instead of leaving the plan.
+- `src/data/traits.js` — local, coarse traits for the seven crops: family
+  (legume / cereal / root), preferred soils, whether it puts nitrogen back,
+  root depth and how long it covers the ground.
+- `src/components/FieldSetup.jsx` — three soil buttons (sandy / loam / clay) and
+  four priorities (best harvest / save water / build soil / quick harvest).
+- `src/lib/rotation.js` — pure functions: `soilFit`, `rankCrops` (re-orders the
+  API ranking for the chosen soil and priority) and `scorePlan` (scores an
+  ordered list of seasons on soil health, water, variety and speed).
+- `src/routes/Rotation.jsx` + `PlanCard.jsx` — two editable plans side by side,
+  live bars, plain-language reasons, and a short explanation of why rotating
+  families and roots protects the soil.
 
-## Design constraints that were kept
+The scores are **relative teaching signals**, not an agronomic model: the screen
+says so in plain words and points the farmer to their extension officer. Nothing
+in the rotation planner invents weather data — it uses the same crop list and
+rain reading the API already returned.
 
-- White paper, one accent (`#1B5E20`), hairline rules, no shadows, no gradients,
-  no border radius.
-- Helvetica (`Helvetica, "Helvetica Neue", Arial, sans-serif`) at 18 px minimum.
-- 480 px maximum content width, 48 px minimum touch targets.
-- Six taps from a cold start to the first plan (the e2e test counts them).
-- Reduced motion turns the rain strip animation off.
-- No hardcoded user-facing strings: everything goes through `t(key, params)`,
-  and a unit test fails if a literal appears in JSX text or in an
-  `aria-label` / `placeholder` / `alt` / `title`, or if a `t('…')` key is
-  missing from `src/i18n/en.json`.
+## The API
+
+```
+GET /api/recommend?lat=&lon=&district=   ranked crops + month suitability
+GET /api/weather?lat=&lon=               current conditions + a typical year
+GET /api/places?q=caravan&q=kerewan      place lookup, several transcripts at once
+```
+
+All three are served by Express; only the backend talks to NASA POWER.
+
+### Making dictation understand Gambian names
+
+Speech recognition is trained on American and British English, so "Kerewan"
+comes back as "caravan" and "Basse Santa Su" as "bass santa sue". The front end
+asks the recogniser for up to five alternatives and sends all of them to
+`/api/places`, which compares what was heard with how each place sounds:
+
+1. `normalise` lowercases, strips punctuation and drops filler words, so
+   "I live in Kerewan" becomes `kerewan`.
+2. `soundKey` reduces a name to its consonant skeleton and folds the spellings
+   that vary — `ph→f`, `ck→k`, `c→k`, `z→s`, doubled letters collapse, vowels
+   drop. `kerewan` → `krwn`, `caravan` → `krvn`.
+3. Each name and alias is scored: exact 100, same skeleton 90, a prefix 80,
+   one or two literal edits 80–74, a near-skeleton 74. A misheard name almost
+   never loses its first consonant, so that is required — it stops "Dakar"
+   turning into "Kaur" or "Bakau".
+4. Anything outside the gazetteer scores zero and the page says it could not
+   find the place instead of guessing.
+
+The gazetteer in `backend/src/data/places.js` holds the eight local government
+areas plus 26 towns, with the spellings people type, the colonial names still in
+use (Bathurst, Georgetown) and the mangled forms the recogniser produces.
+
+The same lookup powers the type-ahead, so "brik" already suggests Brikama.
+
+## What the screens show
+
+- **Month strip** — twelve cells, `J F M A M J J A S O N D`. Filled green =
+  good, half-filled = possible, outline = not suitable, ring on the best month.
+  Every cell is a `listitem` with an `aria-label` such as "July: Good".
+- **Weather that suits it** — rain in the best month against the crop's need,
+  the average high against its heat limit, the longest dry spell, sowing month.
+- **Current weather** — the latest NASA reading for the point: high, low, rain,
+  humidity.
+- **Weather through the year** — twelve horizontal rain bars with the average
+  high beside each one, and a sentence naming the wet and dry seasons.
+- **Planting calendar** — one row per month with something to sow; consecutive
+  empty months fold into a single range (`January – May`, "11 mm over 5 months").
+  Crops are ranked within a row, with the best marked and the current month
+  highlighted.
+- **Soil and priorities** — a compact panel on Home, Crops and Rotations. It
+  re-orders the crop list and adds a "Suits your soil" / "May struggle in your
+  soil" tag; it never changes the NASA reading.
+- **Rotation comparison** — two plans of two to four seasons, each slot a crop
+  picker with its photograph. Soil health, water, variety and speed bars move as
+  the farmer changes the order, and every plan explains itself in sentences
+  ("A legume before a cereal feeds the next crop").
 
 ## Languages
 
-`en.json` is complete. `mnk.json` (Mandinka), `wo.json` (Wolof) and `ff.json`
-(Pulaar) are intentionally empty — every key falls back to English, so the
-language switch is already wired and only needs translation work.
+The menu lists English, Mandinka, Wolof and Pulaar by their own names. Mandinka,
+Wolof and Pulaar carry an `EN` badge because their dictionaries are still being
+written: every lookup falls back to English, and the badge says so rather than
+pretending the switch changed something. `document.documentElement.lang` and the
+speech voice follow the selection, and it survives a reload.
 
-Audio uses `speechSynthesis` first and falls back to recorded clips at
-`/audio/{lang}/{key}.mp3` when a clip exists. If the device has no voice for the
-language, the Listen button is not rendered at all.
+## Voice and offline
+
+- The microphone uses `SpeechRecognition` with `maxAlternatives: 5`; the button
+  is disabled where the browser has no support, so typing always works.
+- Listen buttons are only rendered when the device has a voice for the selected
+  language. English uses `en-GB`, Wolof and Pulaar `fr-FR`.
+- The last answer per field is cached in IndexedDB. If the network fails, the
+  cached answer is shown with "Saved answer — you are offline." The shell is
+  precached by the service worker; crop photographs are cached on first view.
+
+## Bundle
+
+Production build, initial payload:
+
+| File | Raw | Gzip |
+| --- | --- | --- |
+| JavaScript | 222.4 KB | **72.0 KB** |
+| workbox-window | 5.7 KB | 2.2 KB |
+| CSS | 24.8 KB | **5.5 KB** |
+
+The photographs are not in that figure: they are separate files cached at
+runtime (~110 KB each, 7 crops plus the hero).
+
+## Tests
+
+| Suite | Covers |
+| --- | --- |
+| `tests/districts.test.js` | name matching, GPS snapping, coordinates in range |
+| `tests/api.test.js` | request shape, API error codes, offline fallback, normalising |
+| `tests/i18n.test.js` | fallback to English, parameter filling, months and statuses |
+| `tests/strings.test.js` | no hardcoded user-facing text, no missing dictionary keys |
+| `tests/components.test.jsx` | month strip, crop facts, planting calendar, language menu (jsdom) |
+| `tests/render.test.jsx` | server-rendered calendar ranges and soil-fit chips, no DOM needed |
+| `tests/calendar.test.js` | folding empty months into ranges, never losing a month |
+| `tests/rotation.test.js` | soil fit, priority ranking, rotation scores, notes, suggested plans |
+| `e2e/first-result.spec.js` | three taps to an answer, sections, calendar, language, soil, rotations |
+
+The backend has its own suite (`cd backend && npm test`, 39 tests), covering the
+scoring model, the weather aggregation and the place matcher.
+
+On a heavily loaded machine Vitest's worker can time out while jsdom starts
+("Timeout waiting for worker to respond"). The node-environment suites and
+`tests/render.test.jsx` do not need that worker, so they still give full coverage
+of the calendar and rotation logic when it happens.
 
 ## Assumptions
 
-1. **Mock, not science.** The scoring, the ten-year outcome record and the rain
-   strip are generated from a seeded hash of the farm profile. The numbers are
-   plausible and stable, but they are not agronomy and they are not NASA data.
-2. **The Gambia only.** The eight districts, their coordinates and their default
-   soil come from the mock. `nearestCell` returns `null` beyond 250 km.
-3. **Two districts have no default soil** (Brikama, Basse) — the farmer is sent
-   to the soil step instead of getting a guess.
-4. **Irrigation is out of scope.** Choosing "I irrigate" is accepted and then
-   flagged on the plan: "Irrigated farms are not covered yet."
-5. **JavaScript, not TypeScript.** The engine contract lives in JSDoc typedefs
-   and the type gate was replaced by ESLint plus the i18n/string tests. Tailwind
-   was removed as well; layout is plain CSS with semantic class names.
-6. **Crop glyphs and soil diagrams are placeholders** (`// PLACEHOLDER` in the
-   source) and should be replaced with commissioned drawings.
-7. **No backend calls from this UI.** The Express proxy and the NASA POWER
-   integration in `/backend` are untouched by this build.
+1. **The Gambia only.** Eight districts and 26 towns with fixed coordinates; a
+   GPS fix is snapped to the nearest district.
+2. **NASA POWER is the only climate source.** If it is unreachable the API
+   returns 502 and the page falls back to the cached answer, if there is one.
+3. **Rainfall is the water model.** The API has no irrigation, slope or
+   groundwater. Soil is described by the farmer in the browser, not measured;
+   the rotation scores are a relative guide built from crop families.
+4. **Crop constants are coarse.** Water need, season length and heat limit come
+   from FAO/IITA summaries in `backend/src/data/crops.js`; the extra rotation
+   traits are general agronomy in `src/data/traits.js`. This is guidance, not a
+   prescription — the footer and the rotation screen both say so.
+5. **Photographs are AI-generated.** They are recognisable stand-ins, not
+   commissioned photography of Gambian varieties.
+6. **The language menu is honest about its gaps.** Three of the four languages
+   fall back to English until the dictionaries are translated.
 
 ## Layout
 
 ```
 src/
-  engine/       mock engine, contract (JSDoc), engine selector
+  api/          recommend, weather and places clients, with cache + errors
+  context/      AppDataProvider — one fetch per field, shared by every route
+  data/         the eight districts, crop photo paths, rotation traits
+  speech/       Web Speech dictation with alternatives
+  audio/        speechSynthesis playback
   state/        tiny external store persisted to IndexedDB
-  i18n/         dictionaries + t(key, params)
-  audio/        speech synthesis and clip playback
-  components/   sheet, stepper, outcome squares, rain strip, glyphs
-  screens/      location, soil, water, priorities, plan
-  styles/       tokens.css — the only stylesheet
-tests/          vitest: engine, i18n, strings, components
-e2e/            playwright: six-tap path, back button closes a sheet
+  i18n/         dictionaries + translate(language, key, params)
+  lib/          error messages, month grouping, rotation scoring
+  components/   header, nav, location form, field setup, crop card, plan card,
+                month strip, calendar
+  routes/       Home, Weather, Crops, Calendar, Rotation
+  styles/       app.css — the only stylesheet
+tests/          vitest
+e2e/            playwright
 ```

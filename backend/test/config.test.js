@@ -2,7 +2,6 @@ const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { loadConfig } = require("../src/config");
 const { createApp } = require("../src/server");
-const { createDatabaseService } = require("../src/services/databaseService");
 
 test("configuration supplies safe development defaults and leaves integrations optional", () => {
     const config = loadConfig({});
@@ -10,8 +9,32 @@ test("configuration supplies safe development defaults and leaves integrations o
     assert.equal(config.port, 5000);
     assert.equal(config.nodeEnv, "development");
     assert.deepEqual(config.allowedOrigins, ["http://localhost:5173"]);
-    assert.equal(config.supabase.serviceRoleKey, "");
-    assert.equal(config.supabase.databaseUrl, "");
+    assert.equal(config.supabase.url, "");
+    assert.equal(config.supabase.publishableKey, "");
+    assert.equal(config.supabase.secretKey, "");
+});
+
+test("configuration reads the backend Supabase URL and keys", () => {
+    const config = loadConfig({
+        SUPABASE_URL: "https://farmshift.supabase.co",
+        SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
+        SUPABASE_SECRET_KEY: "sb_secret_test"
+    });
+
+    assert.equal(config.supabase.url, "https://farmshift.supabase.co");
+    assert.equal(config.supabase.publishableKey, "sb_publishable_test");
+    assert.equal(config.supabase.secretKey, "sb_secret_test");
+});
+
+test("legacy Supabase keys remain supported as a compatibility fallback", () => {
+    const config = loadConfig({
+        SUPABASE_URL: "https://farmshift.supabase.co",
+        SUPABASE_ANON_KEY: "legacy-publishable",
+        SUPABASE_SERVICE_ROLE_KEY: "legacy-secret"
+    });
+
+    assert.equal(config.supabase.publishableKey, "legacy-publishable");
+    assert.equal(config.supabase.secretKey, "legacy-secret");
 });
 
 test("invalid port and unsupported environment fail with actionable messages", () => {
@@ -41,43 +64,6 @@ test("production CORS rejects unlisted origins with a safe error response", asyn
         nodeEnv: "production",
         allowedOrigins: ["https://farmshift.example"]
     });
-
-    test("database service requires a connection string", async () => {
-        const database = createDatabaseService({ connectionString: "" });
-
-        await assert.rejects(database.checkConnection(), (error) => {
-            assert.match(error.message, /Unable to connect to the configured PostgreSQL database/);
-            assert.equal(error.code, "DATABASE_URL_MISSING");
-            return true;
-        });
-    });
-
-    test("database service verifies connectivity without exposing its connection string", async () => {
-        let poolOptions;
-        let query;
-        const database = createDatabaseService({
-            connectionString: "postgresql://user:private@example.test:5432/postgres",
-            PoolClass: class {
-                constructor(options) {
-                    poolOptions = options;
-                }
-
-                on() {}
-
-                async query(sql) {
-                    query = sql;
-                    return { rows: [{ "?column?": 1 }] };
-                }
-
-                async end() {}
-            }
-        });
-
-        assert.equal(await database.checkConnection(), true);
-        assert.equal(query, "SELECT 1");
-        assert.equal(poolOptions.ssl.rejectUnauthorized, true);
-        await database.close();
-    });
     const server = app.listen(0);
     t.after(() => new Promise((resolve, reject) => {
         server.close((error) => error ? reject(error) : resolve());
@@ -101,4 +87,10 @@ test("production CORS rejects unlisted origins with a safe error response", asyn
         },
         message: "This origin is not allowed."
     });
+});
+
+test("Earthdata token is optional and must look like an Earthdata Login token", () => {
+    assert.equal(loadConfig({}).earthdata.token, "");
+    assert.equal(loadConfig({ EARTHDATA_TOKEN: " aaa.bbb.ccc " }).earthdata.token, "aaa.bbb.ccc");
+    assert.throws(() => loadConfig({ EARTHDATA_TOKEN: "my password" }), /EARTHDATA_TOKEN must be/);
 });

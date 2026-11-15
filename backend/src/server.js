@@ -4,7 +4,12 @@ const net = require("node:net");
 const { config } = require("./config");
 const healthRoutes = require("./routes/healthRoutes");
 const databaseRoutes = require("./routes/databaseRoutes");
+const farmRoutes = require("./routes/farmRoutes");
 const nasaRoutes = require("./routes/nasaRoutes");
+const gambiaRoutes = require("./routes/gambiaRoutes");
+const recommendRoutes = require("./routes/recommendRoutes");
+const placeRoutes = require("./routes/placeRoutes");
+const weatherRoutes = require("./routes/weatherRoutes");
 const errorHandler = require("./middleware/errorHandler");
 
 function isLocalDevelopmentOrigin(origin, nodeEnv) {
@@ -53,13 +58,32 @@ function createApp(appConfig = config) {
             endpoints: {
                 health: "/api/health",
                 databaseHealth: "/api/health/database",
-                nasaPowerDaily: "/api/nasa/power/daily"
+                supabaseHealth: "/api/health/supabase",
+                farms: "/api/farms",
+                nasaPowerDaily: "/api/nasa/power/daily",
+                gambiaRegion: "/api/gambia",
+                gambiaSources: "/api/gambia/sources",
+                gambiaSummary: "/api/gambia/summary",
+                gambiaRecommendations: "/api/gambia/recommendations",
+                gambiaRotation: "/api/gambia/rotation",
+                engineDistricts: "/api/gambia/engine/districts",
+                enginePlan: "/api/gambia/engine/plan",
+                engineSlotOptions: "/api/gambia/engine/slot-options",
+                gambiaSourceData: "/api/gambia/data/:sourceId",
+                recommend: "/api/recommend?lat=13.45&lon=-16.58",
+                weather: "/api/weather?lat=13.45&lon=-16.58",
+                places: "/api/places?q=kerewan"
             }
         });
     });
     app.use("/api/health", healthRoutes);
     app.use("/api/health/database", databaseRoutes);
+    app.use("/api/farms", farmRoutes);
     app.use("/api/nasa", nasaRoutes);
+    app.use("/api/gambia", gambiaRoutes);
+    app.use("/api/recommend", recommendRoutes);
+    app.use("/api/places", placeRoutes);
+    app.use("/api/weather", weatherRoutes);
     app.use(errorHandler);
 
     return app;
